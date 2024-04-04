@@ -1,0 +1,72 @@
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5197"
+    },
+    "https": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7026;http://localhost:5197"
+    },
+    "Quddus": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7026;http://localhost:5197",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_CONNECTION": "Host=localhost;Database=CryptoProject_Db;password=master;username=postgres;",
+        "ROOT_ADMIN_EMAIL": "abdulquddusnuhu@gmail.com",
+        "ROOT_ADMIN_PHONENUMBER": "08038441300",
+        "ROOT_DEFAULT_PASSWORD": "DefaultPass#123",
+        "ADMIN_EMAIL": "hoawilmb@gmail.com",
+        "ADMIN_PHONENUMBER": "08060216275",
+        "ADMIN_PASSWORD": "DefaultPass@1234",
+        "JWT_SECRET_KEY": "SampleKey&999666SampleKey&392929SampleKey&392929",
+        "Crptocurrency_API_KEY": "oeoeoeoeoooo"
+      },
+      "dotnetRunMessages": true
+    },
+
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
+      "environmentVariables": {
+        "ASPNETCORE_HTTPS_PORTS": "8081",
+        "ASPNETCORE_HTTP_PORTS": "8080"
+      },
+      "publishAllPorts": true,
+      "useSSL": true
+    }
+  },
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:59211",
+      "sslPort": 44304
+    }
+  }
+}
