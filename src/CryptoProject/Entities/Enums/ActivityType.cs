@@ -15,6 +15,8 @@
         AdminFundsAdjusted, // When an admin adjusts the funds in a user's wallet
         AdminViewedUser, // When an admin views user details
         AdminViewedTransaction, // When an admin views transaction details
+        USDFundsDeducted, // When funds are deducted from a user's USD account
+        USDFundsAdded, // When funds are added to a user's USD account
     }
 
 }
