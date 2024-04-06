@@ -17,6 +17,9 @@
         AdminViewedTransaction, // When an admin views transaction details
         USDFundsDeducted, // When funds are deducted from a user's USD account
         USDFundsAdded, // When funds are added to a user's USD account
+        LedgerFundsAdded,
+        ledgerFundsDeducted,
+        UserTransfer,
     }
 
 }

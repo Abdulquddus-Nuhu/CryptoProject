@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Net;
 using System.Net.Mime;
 
 namespace CryptoProject.Controllers
@@ -26,7 +27,8 @@ namespace CryptoProject.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<AuthController> _logger;
         private readonly AppDbContext _dbContext;
-        private const string AccessCode = "1234"; 
+        private const string AccessCode = "1234";
+        private readonly string _cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY") ?? string.Empty;
 
         public AuthController(TokenService tokenService, UserManager<User> userManager, SignInManager<User> signInManager, ILogger<AuthController> logger, AppDbContext dbContext)
         {
@@ -70,7 +72,6 @@ namespace CryptoProject.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register(RegisterUser model)
         {
-            //log this activity in activity log
             var response = new BaseResponse();
             var user = new User 
             {
@@ -135,7 +136,7 @@ namespace CryptoProject.Controllers
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
 
-
+                //Todo: send email to user/admin with details
                 await _dbContext.SaveChangesAsync();
                 return StatusCode(201);
             }
@@ -162,6 +163,12 @@ namespace CryptoProject.Controllers
                 return Unauthorized("Invalid Email");
             }
 
+            var userAccount = await _dbContext.Users
+                        .Include(x => x.Wallet)
+                        .Include(x => x.LedgerAccount)
+                        .Include(x => x.USDAccount)
+                        .FirstOrDefaultAsync(x => x.Id == user.Id);
+
             var persona = new PersonaResponse()
             {
                 Email = user.Email,
@@ -173,34 +180,54 @@ namespace CryptoProject.Controllers
                 PhoneNumber = user.PhoneNumber,
                 Role = user.Role.ToString(),
             };
+            var loginResponse = new LoginResponse();
 
-
-            var loginResponse = new LoginResponse()
+            if (persona.Role == RoleType.Admin.ToString())
             {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                MiddleName = user.MiddleName,
-                Email = user.Email,
-                UserName = user.UserName,
-                PhoneNumber = user.PhoneNumber,
-                Role = user.Role.ToString(),
-                AccountType = user.AccountType.ToString(),
-                Address = user.Address,
-                State = user.State,
-                City = user.City,
-                WalletId = user.WalletId,
-            };
-
-            var walletBalance = await _dbContext.Wallets.FirstOrDefaultAsync(x => x.UserId == user.Id);
-            if (walletBalance is null)
-            {
-                loginResponse.WalletBalance = 0;
+                loginResponse.Id = user.Id;
+                loginResponse.FirstName = user.FirstName;
+                loginResponse.LastName = user.LastName;
+                loginResponse.MiddleName = user.MiddleName;
+                loginResponse.Email = user.Email;
+                loginResponse.UserName = user.UserName;
+                loginResponse.PhoneNumber = user.PhoneNumber;
+                loginResponse.Role = user.Role.ToString();
+                loginResponse.AccountType = user.AccountType.ToString();
+                loginResponse.Address = user.Address;
+                loginResponse.State = user.State;
+                loginResponse.City = user.City;
+                //loginResponse.WalletId = user.WalletId;
+                //loginResponse.WalletBalance = userAccount?.Wallet.Balance ?? 0;
+                //loginResponse.LedgerAccountId = userAccount.USDAccountId;
+                //loginResponse.LedgerAccountBalance = userAccount?.LedgerAccount?.Balance ?? 0;
+                //loginResponse.USDAccountId = userAccount.USDAccountId;
+                //loginResponse.USDAccountBalance = userAccount?.USDAccount?.Balance ?? 0;
+                loginResponse.LedgerAccountNumber = _cryptoWalletKey;
             }
             else
             {
-                loginResponse.WalletBalance = walletBalance.Balance;
+                loginResponse.Id = user.Id;
+                loginResponse.FirstName = user.FirstName;
+                loginResponse.LastName = user.LastName;
+                loginResponse.MiddleName = user.MiddleName;
+                loginResponse.Email = user.Email;
+                loginResponse.UserName = user.UserName;
+                loginResponse.PhoneNumber = user.PhoneNumber;
+                loginResponse.Role = user.Role.ToString();
+                loginResponse.AccountType = user.AccountType.ToString();
+                loginResponse.Address = user.Address;
+                loginResponse.State = user.State;
+                loginResponse.City = user.City;
+                loginResponse.WalletId = user.WalletId;
+                loginResponse.WalletBalance = userAccount?.Wallet.Balance ?? 0;
+                loginResponse.LedgerAccountId = userAccount.USDAccountId;
+                loginResponse.LedgerAccountBalance = userAccount?.LedgerAccount?.Balance ?? 0;
+                loginResponse.USDAccountId = userAccount.USDAccountId;
+                loginResponse.USDAccountBalance = userAccount?.USDAccount?.Balance ?? 0;
+                loginResponse.LedgerAccountNumber = _cryptoWalletKey;
+                loginResponse.Pin = userAccount.Pin;
             }
+
 
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, false, false);
             if (result.Succeeded)
@@ -218,6 +245,9 @@ namespace CryptoProject.Controllers
 
                 loginResponse.Token = (_tokenService.GetToken(persona)).Token;
 
+
+                //Todo: send email to admin with details
+                _logger.LogInformation("User with email {0} logged in", request.Email);
                 return Ok(new {  loginResponse });
             }
 

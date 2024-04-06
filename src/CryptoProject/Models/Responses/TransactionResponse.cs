@@ -1,4 +1,6 @@
-﻿namespace CryptoProject.Models.Responses
+﻿using CryptoProject.Entities.Enums;
+
+namespace CryptoProject.Models.Responses
 {
     public class TransactionResponse
     {
@@ -14,5 +16,9 @@
         public string? SenderEmail { get; set; }
         public string? Receiver { get; set; }
         public string? ReceiverEmail { get; set; }
+        public string Details { get; set; }
+        public string ReceiverWalletAddress { get; set; }
+        public string WalletType { get; set; }
+
     }
 }
