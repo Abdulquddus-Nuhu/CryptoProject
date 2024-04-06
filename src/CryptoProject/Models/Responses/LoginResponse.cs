@@ -27,6 +27,8 @@
         public decimal? LedgerAccountBalance { get; set; }
         public Guid? USDAccountId { get; set; }
         public decimal? USDAccountBalance { get; set; }
+        public string LedgerAccountNumber { get; set; }
+        public string Pin { get; set; }
 
     }
 }

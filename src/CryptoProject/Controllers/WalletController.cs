@@ -1,6 +1,7 @@
 ﻿using CryptoProject.Data;
 using CryptoProject.Entities;
 using CryptoProject.Entities.Enums;
+using CryptoProject.Entities.Identity;
 using CryptoProject.Models.Requests;
 using CryptoProject.Models.Responses;
 using CryptoProject.Services;
@@ -9,11 +10,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Net.Mime;
 
 namespace CryptoProject.Controllers
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
     [ApiController]
     public class WalletController : ControllerBase
@@ -24,26 +26,66 @@ namespace CryptoProject.Controllers
             _dbContext = dbContext;
         }
 
-       //[Authorize(Roles = nameof(RoleType.Admin) + ", " + nameof(RoleType.User))]
+        //[Authorize(Roles = nameof(RoleType.Admin) + ", " + nameof(RoleType.User))]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BalanceResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [SwaggerOperation(
+         Summary = "Get a user balance",
+         Description = "WalletType:-   UsdAccount == 0, LedgerAccount == 1, WalleAccount == 2,")
+        //OperationId = "auth.login",
+        //Tags = new[] { "AuthEndpoints" })
+        ]
         [HttpGet("get-balance")]
-        public async Task<ActionResult> GetWalletBalance(Guid userId)
+        public async Task<ActionResult> GetWalletBalance(GetBalanceRequest request)
         {
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var response = new BalanceResponse();
+
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
                 return BadRequest("User not found");
             }
 
-            var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == userId);
-            if (wallet is null)
+            if (request.WalletType is WalletType.WalletAccount)
             {
-                return BadRequest("Wallet not found");
+                var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (wallet is null)
+                {
+                    return BadRequest("Wallet not found");
+                }
+                response.Balance = wallet.Balance;
+            }
+            else if (request.WalletType is WalletType.LedgerAccount)
+            {
+                var ledgerAccount = await _dbContext.LedgerAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (ledgerAccount is null)
+                {
+                    return BadRequest("Ledger-Account not found");
+                }
+                response.Balance = ledgerAccount.Balance;
+            }
+            else if (request.WalletType is WalletType.UsdAccount)
+            {
+                var uSDAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (uSDAccount is null)
+                {
+                    return BadRequest("USD-Account not found");
+                }
+                response.Balance = uSDAccount.Balance;
+
             }
 
-            return Ok(new { Balance = wallet.Balance });
+
+            return Ok(response);
         }
-        
+
         //[Authorize(Roles = nameof(RoleType.Admin) + ", " + nameof(RoleType.User))]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("set-pin")]
         public async Task<IActionResult> SetOrUpdatePin([FromBody] SetPinRequest request)
         {
@@ -62,18 +104,10 @@ namespace CryptoProject.Controllers
             {
                 return BadRequest("Ivalid or empty pin");
             }
-
             user.Pin = request.Pin;
 
 
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
-            Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
-            if (userIdGuid == Guid.Empty)
-            {
-                //todo:
-            }
-
-            var logEntry = ActivityLogService.CreateLogEntry(userIdGuid, userEmail: User.Identity.Name, ActivityType.UserSetPin, $"User with email {user.Email} sets a new pin");
+            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserSetPin, $"User with email {user.Email} sets a new pin");
             _dbContext.ActivityLogs.Add(logEntry);
 
             if (await _dbContext.TrySaveChangesAsync())
@@ -87,68 +121,129 @@ namespace CryptoProject.Controllers
         }
 
         //[Authorize(Roles = nameof(RoleType.User))]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(TransactionResponse),StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("transfer")]
-        public async Task<ActionResult> CreateTransaction(TransactionRequest request)
+        public async Task<ActionResult> CreateTransaction([FromBody]TransactionRequest request)
         {
 
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
-            Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
-
-
-            if (userIdGuid == Guid.Empty)
-            {
-                return BadRequest();
-            }
-
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userIdGuid);
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
-                return BadRequest("Sender account not found");
+                return BadRequest("Sender's account not found");
             }
-            
-            var receiver = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userIdGuid);
-            if (receiver is null)
+
+            //var receiver = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            //if (receiver is null)
+            //{
+            //    return BadRequest("Receiver account not found");
+            //}
+
+            if (user.Pin != request.Pin)
             {
-                return BadRequest("Receiver account not found");
+                  return BadRequest("Incorrect pin");
             }
+
+
+            if (request.WalletType is WalletType.UsdAccount)
+            {
+                var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (usdAccount is null)
+                {
+                    return BadRequest("USD-Account not found");
+                }
+
+                if (usdAccount.Balance < request.Amount)
+                {
+                    return BadRequest("Insufficient balance!");
+                }
+
+                usdAccount.Balance -= request.Amount;
+
+                var logEntry1 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress} from his USD-Account");
+                _dbContext.ActivityLogs.Add(logEntry1);
+
+            }
+            else if (request.WalletType is WalletType.LedgerAccount)
+            {
+
+                var ledgerAccount = await _dbContext.LedgerAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (ledgerAccount is null)
+                {
+                    return BadRequest("Ledger-Account not found");
+                }
+
+                if (ledgerAccount.Balance < request.Amount)
+                {
+                    return BadRequest("Insufficient balance!");
+                }
+
+                ledgerAccount.Balance -= request.Amount;
+
+                var logEntry2 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress} from his Ledger-Account");
+                _dbContext.ActivityLogs.Add(logEntry2);
+            }
+            else if (request.WalletType is WalletType.WalletAccount)
+            {
+                var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (wallet is null)
+                {
+                    return BadRequest("Wallet not found");
+                }
+
+                if (wallet.Balance < request.Amount)
+                {
+                    return BadRequest("Insufficient balance!");
+                }
+
+                wallet.Balance -= request.Amount;
+
+                var logEntry3 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress} from his wallet-Account");
+                _dbContext.ActivityLogs.Add(logEntry3);
+            }
+            else
+            {
+                return BadRequest("Invalid wallet type");
+            }
+
 
             var transaction = new Transaction()
             {
                 Amount = request.Amount,
-                SenderId = userIdGuid,
-                ReceiverId = request.ReceiverId,
-                //Status = TransactionStatus.Pending,
+                SenderId = request.UserId,
+                ReceiverWalletAddress = request.ReceiverWalletAddress,
+                Details = request.Details,
                 Status = TransactionStatus.Successful,
                 Type = TransactionType.Transfer,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.UtcNow,
+                WalletType = request.WalletType,
             };
             await _dbContext.Transactions.AddAsync(transaction);
 
 
-            var senderWallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == userIdGuid);
-            if (senderWallet is null)
-            {
-                return BadRequest("Sender's Wallet not found");
-            }
-            
-            var receiverWallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.ReceiverId);
-            if (receiverWallet is null)
-            {
-                return BadRequest("Receiver's Wallet not found");
-            }
-
-            if (senderWallet.Balance < request.Amount)
-            {
-                return BadRequest("Insufficient balance!");
-            }
-
-            senderWallet.Balance -= request.Amount;
-            receiverWallet.Balance += request.Amount;
+            //var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress}");
+            //_dbContext.ActivityLogs.Add(logEntry);
 
             var result = await _dbContext.TrySaveChangesAsync();
             if (result)
             {
-                return Ok();
+                var response = new TransactionResponse()
+                {
+                    Amount = transaction.Amount,
+                    Timestamp = transaction.Timestamp,
+                    Status = transaction.Status.ToString(),
+                    Type = transaction.Type.ToString(),
+                    SenderId = transaction.SenderId,
+                    Sender = user.FullName,
+                    SenderEmail = user.Email,
+                    ReceiverWalletAddress = transaction.ReceiverWalletAddress,
+                    Details = transaction.Details,
+                    WalletType = transaction.WalletType.ToString(),
+                };
+                //Todo: send email to admin with details
+                return Ok(response);
             }
             else
             {
@@ -165,27 +260,27 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("get-transactions")]
-        public async Task<IActionResult> GetAllTransactions()
+        public async Task<IActionResult> GetAllTransactions(Guid userId)
         {
             List<Transaction> transactions = new List<Transaction>();
             IEnumerable<TransactionResponse> response = new List<TransactionResponse>();
 
 
-            var user = User.Identity!.Name ?? string.Empty;
-            var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
-            Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
+            //var user = User.Identity!.Name ?? string.Empty;
+            //var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
+            //Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
 
 
-            if (userIdGuid == Guid.Empty)
-            {
-                return Ok(response);
-            }
+            //if (userIdGuid == Guid.Empty)
+            //{
+            //    return Ok(response);
+            //}
 
 
             transactions = await _dbContext.Transactions
                 .Include(t => t.Sender)
-                .Include(t => t.Receiver)
-                .Where(t => t.SenderId == userIdGuid)
+                //.Include(t => t.Receiver)
+                .Where(t => t.SenderId == userId)
                 .ToListAsync();
 
             response = transactions.Select(t => new TransactionResponse()
@@ -194,12 +289,14 @@ namespace CryptoProject.Controllers
                 Sender = t.Sender.FullName,
                 SenderId = t.SenderId,
                 SenderEmail = t.Sender.Email,
-                Receiver = t.Receiver.FullName,
-                ReceiverId = t.ReceiverId,
-                ReceiverEmail = t.Receiver.Email,
+                //Receiver = t.Receiver.FullName,
+                //ReceiverId = t.ReceiverId,
+                //ReceiverEmail = t.Receiver.Email,
                 Status = t.Status.ToString(),
                 Type = t.Type.ToString(),
                 Timestamp = t.Timestamp,
+                ReceiverWalletAddress = t.ReceiverWalletAddress,
+                Details = t.Details,
             });
 
             return Ok(response);
