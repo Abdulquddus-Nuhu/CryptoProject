@@ -1,10 +1,130 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using ElasticEmail.Api;
+using ElasticEmail.Client;
+using ElasticEmail.Model;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace CryptoProject.Services
 {
     public class EmailService
     {
+        private readonly EmailsApi _emailsApi;
+        private readonly ILogger<EmailService> _logger;
+        private readonly IConfiguration _config;
+
+        public EmailService(IWebHostEnvironment environment, IConfiguration configuration, ILogger<EmailService> logger)
+        {
+            _config = configuration;
+
+            string emailServiceKey;
+            if (environment.IsDevelopment())
+            {
+                emailServiceKey = _config["ELASTIC_EMAIL_API_KEY"];
+            }
+            else
+            {
+                emailServiceKey = Environment.GetEnvironmentVariable("ELASTIC_EMAIL_API_KEY") ?? string.Empty;
+            }
+
+            Configuration config = new Configuration();
+            config.ApiKey.Add("X-ElasticEmail-ApiKey", emailServiceKey);
+            _emailsApi = new EmailsApi(config);
+            _logger = logger;
+        }
+
+        public void SendEmail(List<string> recipients, string subject, /*string htmlContent,*/ string plainTextContent, string fromAddress)
+        {
+            var transactionalRecipients = new TransactionalRecipient(to: recipients);
+            EmailTransactionalMessageData emailData = new EmailTransactionalMessageData(recipients: transactionalRecipients);
+
+            emailData.Content = new EmailContent
+            {
+                Body = new List<BodyPart>
+                {
+                    //new BodyPart
+                    //{
+                    //    ContentType = BodyContentType.HTML,
+                    //    Charset = "utf-8",
+                    //    Content = htmlContent
+                    //},
+                    new BodyPart
+                    {
+                        ContentType = BodyContentType.PlainText,
+                        Charset = "utf-8",
+                        Content = plainTextContent
+                    }
+                },
+                From = fromAddress,
+                Subject = subject
+            };
+
+            try
+            {
+                _emailsApi.EmailsTransactionalPost(emailData, 0);
+
+                Console.WriteLine("Email sent successfully.");
+                _logger.LogInformation("Email sent successfully.");
+            }
+            catch (ApiException e)
+            {
+                Console.WriteLine("Exception when calling EmailsApi.EmailsTransactionalPost: " + e.Message);
+                _logger.LogInformation("Exception when calling EmailsApi.EmailsTransactionalPost: " + e.Message);
+
+                Console.WriteLine("Status Code: " + e.ErrorCode);
+                _logger.LogInformation("Status Code: " + e.ErrorCode);
+
+                Console.WriteLine(e.StackTrace);
+                _logger.LogInformation(e.StackTrace);
+
+            }
+        }
+
+        //public void SendEmail(List<string> recipients, string subject, string htmlContent, string plainTextContent, string fromAddress)
+        //{
+        //    var transactionalRecipients = new TransactionalRecipient(to: recipients);
+        //    EmailTransactionalMessageData emailData = new EmailTransactionalMessageData(recipients: transactionalRecipients);
+
+        //    emailData.Content = new EmailContent
+        //    {
+        //        Body = new List<BodyPart>
+        //        {
+        //            new BodyPart
+        //            {
+        //                ContentType = BodyContentType.HTML,
+        //                Charset = "utf-8",
+        //                Content = htmlContent
+        //            },
+        //            new BodyPart
+        //            {
+        //                ContentType = BodyContentType.PlainText,
+        //                Charset = "utf-8",
+        //                Content = plainTextContent
+        //            }
+        //        },
+        //        From = fromAddress,
+        //        Subject = subject
+        //    };
+
+        //    try
+        //    {
+        //        _emailsApi.EmailsTransactionalPost(emailData, 0);
+        //        Console.WriteLine("Email sent successfully.");
+        //    }
+        //    catch (ApiException e)
+        //    {
+        //        Console.WriteLine("Exception when calling EmailsApi.EmailsTransactionalPost: " + e.Message);
+        //        Console.WriteLine("Status Code: " + e.ErrorCode);
+        //        Console.WriteLine(e.StackTrace);
+        //        throw;
+        //    }
+        //}
     }
+
+
+
+
+
 
     //public class SmtpEmailSender : IEmailService
     //{

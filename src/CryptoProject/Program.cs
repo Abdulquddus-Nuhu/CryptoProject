@@ -113,6 +113,32 @@ try
 
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<EmailService>();
+    builder.Services.AddScoped<OtpGenerator>();
+
+    //string emailServiceKey;
+    //if (builder.Environment.IsDevelopment())
+    //{
+    //    emailServiceKey = builder.Configuration["ELASTIC_EMAIL_API_KEY"];
+    //}
+    //else
+    //{
+    //    emailServiceKey = Environment.GetEnvironmentVariable("ELASTIC_EMAIL_API_KEY");
+    //}
+
+    //builder.Services.AddScoped(provider =>
+    //new EmailService(
+    //    emailServiceKey,
+    //    provider.GetRequiredService<ILogger<EmailService>>()
+    //));
+
+    builder.Services.AddScoped<EmailService>(provider =>
+    {
+        return new EmailService(builder.Environment,
+            builder.Configuration,
+            provider.GetRequiredService<ILogger<EmailService>>()
+        );
+    });
+
 
     // Register the worker responsible of seeding the database.
     builder.Services.AddHostedService<SeedDb>();
