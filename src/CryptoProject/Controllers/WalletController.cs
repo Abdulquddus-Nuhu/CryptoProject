@@ -21,9 +21,16 @@ namespace CryptoProject.Controllers
     public class WalletController : ControllerBase
     {
         private readonly AppDbContext _dbContext;
-        public WalletController(AppDbContext dbContext)
+        private readonly OtpGenerator _otpGenerator;
+        private readonly EmailService _emailService;
+        private readonly ILogger<WalletController> _logger;
+        public WalletController(AppDbContext dbContext, OtpGenerator otpGenerator, EmailService emailService,
+            ILogger<WalletController> logger)
         {
             _dbContext = dbContext;
+            _otpGenerator = otpGenerator;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         //[Authorize(Roles = nameof(RoleType.Admin) + ", " + nameof(RoleType.User))]
@@ -122,6 +129,75 @@ namespace CryptoProject.Controllers
 
         //[Authorize(Roles = nameof(RoleType.User))]
         [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPost("initiate-transfer")]
+        public async Task<IActionResult> InitiateTransfer([FromBody] InitiateTransferRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return UnprocessableEntity(ModelState);
+            }
+
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            if (user is null)
+            {
+                return BadRequest("User not found");
+            }
+
+            string otp = _otpGenerator.Generate(user.Email, 2, 6);
+            _logger.LogInformation("User with id: {0} requested otp: {1}",request.UserId,otp);
+
+            string subject = "Transfer OTP";
+            string message = $"Your OTP is {otp} valid for 2 minutes";
+            List<string> receivers = [user.Email];
+
+            _emailService.SendEmail(receivers, subject, message, "abdulquddusnuhu@gmail.com");
+
+            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserInitiateTransfer, $"User with email {user.Email} initiated a transfer");
+            _dbContext.ActivityLogs.Add(logEntry);
+
+            return Ok(otp);
+        }
+        //write endpoint to verify otp and complete transfer
+        //[Authorize(Roles = nameof(RoleType.User))]
+        //[Produces(MediaTypeNames.Application.Json)]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //[HttpPost("complete-transfer")]
+        //public async Task<IActionResult> CompleteTransfer([FromBody] CompleteTransferRequest request)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return UnprocessableEntity(ModelState);
+        //    }
+        //    var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+        //    if (user is null)
+        //    {
+        //        return BadRequest("User not found");
+        //    }
+        //    if (!_otpGenerator.Verify(user.Email, request.Otp, 5, 6))
+        //    {
+        //        return BadRequest("Invalid OTP");
+        //    }
+        //    var transaction = new Transaction()
+        //    {
+        //        Amount = request.Amount,
+        //        SenderId = request.UserId,
+        //        ReceiverWalletAddress = request.ReceiverWalletAddress,
+        //        Details = request.Details,
+        //        Status = TransactionStatus.Successful,
+        //        Type = TransactionType.Transfer,
+        //        Timestamp = DateTime.UtcNow,
+        //        WalletType = request.WalletType,
+        //    };
+        //    await _dbContext.Transactions.AddAsync(transaction);
+        //    if (requestpoint to initiate transfer by geneating otp and sending it to a user email using elastic email service
+
+        //[Authorize(Roles = nameof(RoleType.User))]
+        [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(TransactionResponse),StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -141,9 +217,16 @@ namespace CryptoProject.Controllers
             //    return BadRequest("Receiver account not found");
             //}
 
+            if (!_otpGenerator.Verify(user.Email, request.Otp, 2, 6))
+            {
+                _logger.LogInformation("Invalid OTP: {}",request.Otp);
+                return BadRequest("Invalid OTP");
+            }
+
             if (user.Pin != request.Pin)
             {
-                  return BadRequest("Incorrect pin");
+                _logger.LogInformation("Incorrect pin: {0}", request.Pin);
+                return BadRequest("Incorrect pin");
             }
 
 

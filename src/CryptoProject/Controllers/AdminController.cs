@@ -40,7 +40,7 @@ namespace CryptoProject.Controllers
                 .Include(x => x.Wallet)
                 .Include(x => x.LedgerAccount)
                 .Include(x => x.USDAccount)
-                .OrderBy(x => x.Created)
+                .OrderByDescending(x => x.Created)
                 .ToListAsync();
 
             //add pagination searching and filtering to this endpoint
@@ -122,7 +122,9 @@ namespace CryptoProject.Controllers
         [HttpGet("activities")]
         public async Task<IActionResult> GetAllActivities()
         {
-            var logs = await _dbContext.ActivityLogs.ToListAsync();
+            var logs = _dbContext.ActivityLogs
+                .OrderByDescending(x => x.Created);
+
             var response = logs.Select(x => new ActivityLogResponse()
             {
 
@@ -143,10 +145,10 @@ namespace CryptoProject.Controllers
         [HttpGet("transactions")]
         public async Task<IActionResult> GetAllTransactions()
         {
-            var transactions = await _dbContext.Transactions
+            var transactions = _dbContext.Transactions
                 .Include(t => t.Sender)
                 //.Include(t => t.Receiver)
-                .ToListAsync();
+                .OrderByDescending(x => x.Created);
 
             var response = transactions.Select(t => new TransactionResponse()
             {
@@ -162,6 +164,7 @@ namespace CryptoProject.Controllers
                 Timestamp = t.Timestamp,
                 ReceiverWalletAddress = t.ReceiverWalletAddress,
                 Details = t.Details,
+                WalletType = t.WalletType.ToString()
             });
 
             return Ok(response);

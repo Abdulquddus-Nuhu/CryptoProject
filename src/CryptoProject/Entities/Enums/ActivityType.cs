@@ -20,6 +20,7 @@
         LedgerFundsAdded,
         ledgerFundsDeducted,
         UserTransfer,
+        UserInitiateTransfer,
     }
 
 }
