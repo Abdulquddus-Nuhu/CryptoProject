@@ -37,6 +37,24 @@ namespace CryptoProject.Data
                .HasOne(u => u.USDAccount)  // User has one Wallet
                .WithOne(w => w.User)  // Wallet is associated with one User
                .HasForeignKey<USDAccount>(w => w.UserId);
+
+            //Account Number Sequence generation
+            //modelBuilder.HasSequence<int>("AccountNumberSeq", schema: "dbo")
+            //    .StartsAt(0002753554) // Start from a specific 10-digit number
+            //    .IncrementsBy(1);
+
+            //modelBuilder.Entity<User>()
+            //    .Property(o => o.AccountNumber)
+            //    .HasDefaultValueSql("NEXT VALUE FOR dbo.AccountNumberSeq");
+
+            modelBuilder.HasSequence<int>("AccountNumberSeq", schema: "public")
+                .StartsAt(2000753554)
+                .IncrementsBy(1);
+
+            modelBuilder.Entity<User>()
+                .Property(o => o.AccountNumber)
+                .HasDefaultValueSql("nextval('public.\"AccountNumberSeq\"')");
+
         }
 
 

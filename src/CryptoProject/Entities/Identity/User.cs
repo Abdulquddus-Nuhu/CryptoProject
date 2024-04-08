@@ -40,6 +40,9 @@ namespace CryptoProject.Entities.Identity
         public Guid? USDAccountId { get; set; }
         public USDAccount? USDAccount { get; set; }
 
+        public string? Country { get; set; }
+        public string? AccountNumber { get; set; }
+
 
 
         public bool IsDeleted { get; set; }

@@ -32,6 +32,8 @@ namespace CryptoProject.Models.Responses
         public decimal? USDAccountBalance { get; set; }
         public string LedgerAccountNumber { get; set; }
         public string Pin { get; set; }
+        public string Country { get; set; }
+        public string AccountNumber { get; set; }
     }
 
 }

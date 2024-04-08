@@ -5,6 +5,8 @@ using CryptoProject.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -204,20 +206,41 @@ try
         });
     });
 
+    // Security and Production enhancements 
+    if (!builder.Environment.IsDevelopment())
+    {
+        // Proxy Server Config
+        builder.Services.Configure<ForwardedHeadersOptions>(
+              options =>
+              {
+                  options.ForwardedHeaders =
+                      ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+              });
+
+        //Persist key
+        builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("/var/keys"));
+    }
+
+    //Remove Server Header
+    builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
+
+
 
     var app = builder.Build();
 
-    // Configure the HTTP request pipeline.
-    //if (app.Environment.IsDevelopment())
-    //{
-    //    app.UseSwagger();
-    //    app.UseSwaggerUI();
-    //}
-
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    //Configure the HTTP request pipeline.
+    if (!app.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.UseHttpsRedirection();
+
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();

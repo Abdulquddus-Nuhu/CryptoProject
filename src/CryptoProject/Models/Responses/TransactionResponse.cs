@@ -4,6 +4,7 @@ namespace CryptoProject.Models.Responses
 {
     public class TransactionResponse
     {
+        public Guid Id { get; set; }
         public decimal Amount { get; set; }
         public DateTime Timestamp { get; set; }
         public string Status { get; set; } = string.Empty;
