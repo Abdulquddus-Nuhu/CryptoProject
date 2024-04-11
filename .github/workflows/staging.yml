@@ -34,7 +34,7 @@ jobs:
       with:
         local: /home/runner/work/CryptoProject/CryptoProject/src/CryptoProject/bin/Release/net8.0/publish/
         concurrency: 10
-        remote: ${{ secrets.REMOTE_TARGET }}
+        remote: ${{ secrets.REMOTE_TARGET_STAGING }}
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         password: ${{ secrets.REMOTE_PASSWORD }}
