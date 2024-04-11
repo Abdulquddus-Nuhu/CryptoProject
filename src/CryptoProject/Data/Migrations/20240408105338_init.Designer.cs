@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CryptoProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240406112131_modifyTransaction")]
-    partial class modifyTransaction
+    [Migration("20240408105338_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,9 @@ namespace CryptoProject.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.HasSequence<int>("AccountNumberSeq", "public")
+                .StartsAt(2000753554L);
 
             modelBuilder.Entity("CryptoProject.Entities.ActivityLog", b =>
                 {
@@ -38,6 +41,9 @@ namespace CryptoProject.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Data")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("Deleted")
@@ -111,6 +117,11 @@ namespace CryptoProject.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AccountNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValueSql("nextval('public.\"AccountNumberSeq\"')");
+
                     b.Property<int>("AccountType")
                         .HasColumnType("integer");
 
@@ -122,6 +133,9 @@ namespace CryptoProject.Migrations
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Country")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("Created")
@@ -325,6 +339,9 @@ namespace CryptoProject.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WalletType")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

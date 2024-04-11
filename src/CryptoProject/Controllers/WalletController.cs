@@ -52,7 +52,7 @@ namespace CryptoProject.Controllers
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
-                return BadRequest("User not found");
+                return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status=false });
             }
 
             if (request.WalletType is WalletType.WalletAccount)
@@ -60,7 +60,7 @@ namespace CryptoProject.Controllers
                 var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (wallet is null)
                 {
-                    return BadRequest("Wallet not found");
+                    return BadRequest(new BaseResponse { Message = "Wallet not found", Code = 400, Status = false });
                 }
                 response.Balance = wallet.Balance;
             }
@@ -69,7 +69,7 @@ namespace CryptoProject.Controllers
                 var ledgerAccount = await _dbContext.LedgerAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (ledgerAccount is null)
                 {
-                    return BadRequest("Ledger-Account not found");
+                    return BadRequest(new BaseResponse { Message = "Ledger-Account not found", Code = 400, Status = false });
                 }
                 response.Balance = ledgerAccount.Balance;
             }
@@ -78,7 +78,7 @@ namespace CryptoProject.Controllers
                 var uSDAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (uSDAccount is null)
                 {
-                    return BadRequest("USD-Account not found");
+                    return BadRequest(new BaseResponse { Message = "USD-Account not found", Code = 400, Status = false });
                 }
                 response.Balance = uSDAccount.Balance;
 
@@ -104,12 +104,12 @@ namespace CryptoProject.Controllers
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
-                return BadRequest("User not found");
+                return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status = false });
             }
 
             if (string.IsNullOrWhiteSpace(request.Pin))
             {
-                return BadRequest("Ivalid or empty pin");
+                return BadRequest(new BaseResponse { Message = "Ivalid or empty pin", Code = 400, Status = false });
             }
             user.Pin = request.Pin;
 
@@ -119,11 +119,11 @@ namespace CryptoProject.Controllers
 
             if (await _dbContext.TrySaveChangesAsync())
             {
-                return Ok();
+                return Ok(new BaseResponse() { Message = "Pin updated successfully"});
             }
             else
             {
-                return StatusCode(500, "Unable to update record please try again or contact administrator");
+                return StatusCode(500, new BaseResponse() { Message = "Unable to update record please try again or contact administrator", Status = false });
             }
         }
 
@@ -143,7 +143,7 @@ namespace CryptoProject.Controllers
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
-                return BadRequest("User not found");
+                return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status = false });
             }
 
             string otp = _otpGenerator.Generate(user.Email, 2, 6);
@@ -158,43 +158,9 @@ namespace CryptoProject.Controllers
             var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserInitiateTransfer, $"User with email {user.Email} initiated a transfer");
             _dbContext.ActivityLogs.Add(logEntry);
 
-            return Ok(otp);
+            return Ok(new { otp = otp, Message = "Otp sent successfully" });
         }
-        //write endpoint to verify otp and complete transfer
-        //[Authorize(Roles = nameof(RoleType.User))]
-        //[Produces(MediaTypeNames.Application.Json)]
-        //[ProducesResponseType(StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //[HttpPost("complete-transfer")]
-        //public async Task<IActionResult> CompleteTransfer([FromBody] CompleteTransferRequest request)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        return UnprocessableEntity(ModelState);
-        //    }
-        //    var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
-        //    if (user is null)
-        //    {
-        //        return BadRequest("User not found");
-        //    }
-        //    if (!_otpGenerator.Verify(user.Email, request.Otp, 5, 6))
-        //    {
-        //        return BadRequest("Invalid OTP");
-        //    }
-        //    var transaction = new Transaction()
-        //    {
-        //        Amount = request.Amount,
-        //        SenderId = request.UserId,
-        //        ReceiverWalletAddress = request.ReceiverWalletAddress,
-        //        Details = request.Details,
-        //        Status = TransactionStatus.Successful,
-        //        Type = TransactionType.Transfer,
-        //        Timestamp = DateTime.UtcNow,
-        //        WalletType = request.WalletType,
-        //    };
-        //    await _dbContext.Transactions.AddAsync(transaction);
-        //    if (requestpoint to initiate transfer by geneating otp and sending it to a user email using elastic email service
+
 
         //[Authorize(Roles = nameof(RoleType.User))]
         [Produces(MediaTypeNames.Application.Json)]
@@ -208,7 +174,7 @@ namespace CryptoProject.Controllers
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
             {
-                return BadRequest("Sender's account not found");
+                return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status = false });
             }
 
             //var receiver = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
@@ -220,13 +186,13 @@ namespace CryptoProject.Controllers
             if (!_otpGenerator.Verify(user.Email, request.Otp, 2, 6))
             {
                 _logger.LogInformation("Invalid OTP: {}",request.Otp);
-                return BadRequest("Invalid OTP");
+                return BadRequest(new BaseResponse { Message = "Invalid OTP", Code = 400, Status = false });
             }
 
             if (user.Pin != request.Pin)
             {
                 _logger.LogInformation("Incorrect pin: {0}", request.Pin);
-                return BadRequest("Incorrect pin");
+                return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
             }
 
 
@@ -235,12 +201,12 @@ namespace CryptoProject.Controllers
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (usdAccount is null)
                 {
-                    return BadRequest("USD-Account not found");
+                    return BadRequest(new BaseResponse { Message = "USD-Account not found", Code = 400, Status = false });
                 }
 
                 if (usdAccount.Balance < request.Amount)
                 {
-                    return BadRequest("Insufficient balance!");
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
                 }
 
                 usdAccount.Balance -= request.Amount;
@@ -255,12 +221,12 @@ namespace CryptoProject.Controllers
                 var ledgerAccount = await _dbContext.LedgerAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (ledgerAccount is null)
                 {
-                    return BadRequest("Ledger-Account not found");
+                    return BadRequest(new BaseResponse { Message = "Ledger-Account not found", Code = 400, Status = false });
                 }
 
                 if (ledgerAccount.Balance < request.Amount)
                 {
-                    return BadRequest("Insufficient balance!");
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
                 }
 
                 ledgerAccount.Balance -= request.Amount;
@@ -273,12 +239,12 @@ namespace CryptoProject.Controllers
                 var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (wallet is null)
                 {
-                    return BadRequest("Wallet not found");
+                    return BadRequest(new BaseResponse { Message = "Wallet not found", Code = 400, Status = false });
                 }
 
                 if (wallet.Balance < request.Amount)
                 {
-                    return BadRequest("Insufficient balance!");
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
                 }
 
                 wallet.Balance -= request.Amount;
@@ -288,7 +254,7 @@ namespace CryptoProject.Controllers
             }
             else
             {
-                return BadRequest("Invalid wallet type");
+                return BadRequest(new BaseResponse { Message = "Invalid wallet type", Code = 400, Status = false });
             }
 
 
@@ -330,7 +296,7 @@ namespace CryptoProject.Controllers
             }
             else
             {
-                return StatusCode(500, "Unable to process transfer please try again later or contact administrator");
+                return StatusCode(500, new BaseResponse { Message = "Unable to process transfer please try again later or contact administrator", Status = false });
             }
 
 

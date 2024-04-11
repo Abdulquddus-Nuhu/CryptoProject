@@ -12,6 +12,14 @@ namespace CryptoProject.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "public");
+
+            migrationBuilder.CreateSequence<int>(
+                name: "AccountNumberSeq",
+                schema: "public",
+                startValue: 2000753554L);
+
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -45,6 +53,8 @@ namespace CryptoProject.Migrations
                     WalletId = table.Column<Guid>(type: "uuid", nullable: true),
                     LedgerAccountId = table.Column<Guid>(type: "uuid", nullable: true),
                     USDAccountId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Country = table.Column<string>(type: "text", nullable: true),
+                    AccountNumber = table.Column<string>(type: "text", nullable: true, defaultValueSql: "nextval('public.\"AccountNumberSeq\"')"),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
                     Deleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -102,6 +112,7 @@ namespace CryptoProject.Migrations
                     ActivityType = table.Column<int>(type: "integer", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Details = table.Column<string>(type: "text", nullable: true),
+                    Data = table.Column<string>(type: "text", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
                     Deleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -242,6 +253,9 @@ namespace CryptoProject.Migrations
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false),
+                    ReceiverWalletAddress = table.Column<string>(type: "text", nullable: false),
+                    WalletType = table.Column<int>(type: "integer", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
                     Deleted = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -426,6 +440,10 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropSequence(
+                name: "AccountNumberSeq",
+                schema: "public");
         }
     }
 }

@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 using System.Net.Mime;
+using System.Text.Json;
 
 namespace CryptoProject.Controllers
 {
@@ -87,6 +88,7 @@ namespace CryptoProject.Controllers
                 PhoneNumber = model.PhoneNumber,
                 MiddleName = model.MiddleName,
                 Role = Entities.Enums.RoleType.User,
+                Country = model.Country,
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
             };
@@ -132,7 +134,8 @@ namespace CryptoProject.Controllers
                     UserEmail = user.Email,
                     ActivityType = ActivityType.UserRegistered,
                     Timestamp = DateTime.UtcNow,
-                    Details = $"User with email {model.Email} registered"
+                    Details = $"User with email {model.Email} registered",
+                    Data = JsonSerializer.Serialize(model)
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
 
@@ -160,7 +163,7 @@ namespace CryptoProject.Controllers
             if (user == null)
             {
                 _logger.LogInformation("User with email {0} tried to login but account doesnt exist", request.Email);
-                return Unauthorized("Invalid Email");
+                return Unauthorized(new BaseResponse() { Message = "Invalid Email", Code = 401, Status = false });
             }
 
             var userAccount = await _dbContext.Users
@@ -226,6 +229,8 @@ namespace CryptoProject.Controllers
                 loginResponse.USDAccountBalance = userAccount?.USDAccount?.Balance ?? 0;
                 loginResponse.LedgerAccountNumber = _cryptoWalletKey;
                 loginResponse.Pin = userAccount.Pin;
+                loginResponse.Country = userAccount.Country;
+                loginResponse.AccountNumber = userAccount.AccountNumber;
             }
 
 
@@ -238,7 +243,8 @@ namespace CryptoProject.Controllers
                     UserEmail = user.Email,
                     ActivityType = ActivityType.UserLoggedIn,
                     Timestamp = DateTime.UtcNow,
-                    Details = $"User with email {user.Email} logged in"
+                    Details = $"User with email {user.Email} logged in",
+                    Data = JsonSerializer.Serialize(request)
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
                 await _dbContext.SaveChangesAsync();
@@ -252,7 +258,7 @@ namespace CryptoProject.Controllers
             }
 
             _logger.LogInformation("User with email {0} tried to login but password is invalid", request.Email);
-            return Unauthorized("Invalid Password");
+            return Unauthorized(new BaseResponse() { Message = "Invalid Password", Status = false, Code = 401});
         }
 
 

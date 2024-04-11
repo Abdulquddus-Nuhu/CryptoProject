@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net.Mime;
+using System.Text.Json;
 
 namespace CryptoProject.Controllers
 {
@@ -65,7 +66,9 @@ namespace CryptoProject.Controllers
                 USDAccountId = x.USDAccountId,
                 USDAccountBalance = x.USDAccount.Balance,
                 LedgerAccountNumber = _cryptoWalletKey,
-                Pin = x.Pin
+                Pin = x.Pin,
+                Country = x.Country,
+                AccountNumber = x.AccountNumber
             });
 
             return Ok(response);
@@ -109,7 +112,9 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = user.LedgerAccount.Balance,
                 USDAccountId = user.USDAccountId,
                 USDAccountBalance = user.USDAccount.Balance,
-                LedgerAccountNumber = _cryptoWalletKey
+                LedgerAccountNumber = _cryptoWalletKey,
+                Country = user.Country,
+                AccountNumber = user.AccountNumber
             };
 
             return Ok(response);
@@ -133,6 +138,7 @@ namespace CryptoProject.Controllers
                 Timestamp = x.Timestamp,
                 Details = x.Details,
                 ActivityType = x.ActivityType.ToString(),
+                Data = x.Data
             });
 
             return Ok(response);
@@ -152,6 +158,7 @@ namespace CryptoProject.Controllers
 
             var response = transactions.Select(t => new TransactionResponse()
             {
+                Id = t.Id,
                 Amount = t.Amount,
                 Sender = t.Sender.FullName,
                 SenderId = t.SenderId,
@@ -181,31 +188,55 @@ namespace CryptoProject.Controllers
             var transaction = _dbContext.Transactions.FirstOrDefault(t => t.Id == transactionId);
             if (transaction is null)
             {
-                return BadRequest("Transaction not found");
+                return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
 
-            var receiverWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.ReceiverId);
-            if (receiverWallet is null)
+            if (transaction.WalletType is WalletType.UsdAccount)
             {
-                return BadRequest("Receiver's Wallet not found");
-            }
+                var uSDAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (uSDAccount is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's USD-Account not found", Status = false, Code = 400 });
+                }
 
-            var senderWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
-            if (senderWallet is null)
+                if (transaction.Type == TransactionType.Transfer)
+                {
+                    uSDAccount.Balance += transaction.Amount;
+                }
+
+            }
+            else if (transaction.WalletType is WalletType.LedgerAccount)
             {
-                return BadRequest("Sender's Wallet not found");
+                var ledger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (ledger is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's ledger-Account not found", Status = false, Code = 400 });
+                }
+
+                if (transaction.Type == TransactionType.Transfer)
+                {
+                    ledger.Balance += transaction.Amount;
+                }
+            }
+            else if (transaction.WalletType is WalletType.WalletAccount)
+            {
+                var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (wallet is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's wallet-Account not found", Status = false, Code = 400 });
+                }
+
+                if (transaction.Type == TransactionType.Transfer)
+                {
+                    wallet.Balance += transaction.Amount;
+                }
             }
 
-            //receiverWallet.Balance -= transaction.Amount;
-            //senderWallet.Balance += transaction.Amount;
-            receiverWallet.Balance += transaction.Amount;
-            senderWallet.Balance -= transaction.Amount;
-            transaction.Status = Entities.Enums.TransactionStatus.Reverted;
+            transaction.Status = TransactionStatus.Reverted;
+            transaction.Modified = DateTime.UtcNow;
 
             _dbContext.Transactions.Update(transaction);
-            _dbContext.Wallets.Update(senderWallet);
-            _dbContext.Wallets.Update(receiverWallet);
 
             var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
             Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
@@ -214,20 +245,20 @@ namespace CryptoProject.Controllers
                 //todo:
             }
 
-            var logEntry = ActivityLogService.CreateLogEntry(userIdGuid, userEmail: User.Identity.Name, ActivityType.WalletTransferReverted, transaction.Amount);
+            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.WalletTransferReverted, transaction.Amount);
+            logEntry.Data = JsonSerializer.Serialize(transaction);
             _dbContext.ActivityLogs.Add(logEntry);
 
             var result = await _dbContext.TrySaveChangesAsync();
             if (result)
             {
                 _logger.LogInformation("Admin reverted a user transaction with id: {0}", transaction.Id);
-                return Ok(new BaseResponse());
+                return Ok(new BaseResponse() { Message = "Transaction reverted successfully"});
             }
             else
             {
                 _logger.LogInformation("500 - Unable to rervert transaction with id: {0}", transaction.Id);
                 return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to rervert transaction! Please try again or contact administrator" });
-                //return StatusCode(500, "Unable to rervert transaction! Please try again or contact administrator");
             }
         }
 
@@ -265,6 +296,7 @@ namespace CryptoProject.Controllers
                 _dbContext.USDAccounts.Update(usdAccount);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.USDFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 //log acivity
@@ -288,6 +320,7 @@ namespace CryptoProject.Controllers
                 _dbContext.LedgerAccounts.Update(ledger);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.LedgerFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 var result = await _dbContext.TrySaveChangesAsync();
@@ -311,6 +344,7 @@ namespace CryptoProject.Controllers
                 _dbContext.Wallets.Update(wallet);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 var result = await _dbContext.TrySaveChangesAsync();
@@ -362,6 +396,7 @@ namespace CryptoProject.Controllers
                 _dbContext.Wallets.Update(wallet);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 var result = await _dbContext.TrySaveChangesAsync();
@@ -389,6 +424,7 @@ namespace CryptoProject.Controllers
                 _dbContext.USDAccounts.Update(usdAccount);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.USDFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 var result = await _dbContext.TrySaveChangesAsync();
@@ -416,6 +452,7 @@ namespace CryptoProject.Controllers
                 _dbContext.LedgerAccounts.Update(ledger);
 
                 var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.ledgerFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
                 _dbContext.ActivityLogs.Add(logEntry);
 
                 var result = await _dbContext.TrySaveChangesAsync();
