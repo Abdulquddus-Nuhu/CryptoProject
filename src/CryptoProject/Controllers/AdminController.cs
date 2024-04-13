@@ -138,7 +138,6 @@ namespace CryptoProject.Controllers
                 Timestamp = x.Timestamp,
                 Details = x.Details,
                 ActivityType = x.ActivityType.ToString(),
-                Data = x.Data
             });
 
             return Ok(response);

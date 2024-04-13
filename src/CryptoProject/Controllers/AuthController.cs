@@ -28,7 +28,7 @@ namespace CryptoProject.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<AuthController> _logger;
         private readonly AppDbContext _dbContext;
-        private const string AccessCode = "1234";
+        private readonly string _accessCode = Environment.GetEnvironmentVariable("ACCESS_CODE") ?? string.Empty;
         private readonly string _cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY") ?? string.Empty;
 
         public AuthController(TokenService tokenService, UserManager<User> userManager, SignInManager<User> signInManager, ILogger<AuthController> logger, AppDbContext dbContext)
@@ -48,7 +48,7 @@ namespace CryptoProject.Controllers
         [HttpPost("verify-code")]
         public IActionResult VerifyAccessCode([FromBody] string accessCode)
         {
-            if (accessCode == AccessCode)
+            if (accessCode == _accessCode)
             {
                 return Ok(new { Message = "Access granted" });
             }
