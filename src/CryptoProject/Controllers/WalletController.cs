@@ -438,7 +438,7 @@ namespace CryptoProject.Controllers
 
         //[Authorize(Roles = nameof(RoleType.User))]
         [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(TransactionResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BitcoinTransferResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("bitcoin-transfer")]
@@ -568,6 +568,136 @@ namespace CryptoProject.Controllers
                 return StatusCode(500, new BaseResponse { Message = "Unable to process transfer please try again later or contact administrator", Status = false });
             }
         }
+
+
+        //[Authorize(Roles = nameof(RoleType.User))]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(TransactionResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPost("topUp-wallet")]
+        public async Task<ActionResult> TopUpWallet([FromBody] TopUpWalletRequest request)
+        {
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            if (user is null)
+            {
+                return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status = false });
+            }
+
+            if (!_otpGenerator.Verify(user.Email, request.Otp, 2, 6))
+            {
+                _logger.LogInformation("Invalid OTP: {0}", request.Otp);
+                return BadRequest(new BaseResponse { Message = "Invalid OTP", Code = 400, Status = false });
+            }
+
+            if (user.Pin != request.Pin)
+            {
+                _logger.LogInformation("Incorrect pin: {0}", request.Pin);
+                return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
+            }
+
+            if (request.FromWalletType is WalletType.UsdAccount)
+            {
+                var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (usdAccount is null)
+                {
+                    return BadRequest(new BaseResponse { Message = "USD-Account not found", Code = 400, Status = false });
+                }
+
+                if (usdAccount.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
+                }
+
+                usdAccount.Balance -= request.Amount;
+
+                var logEntry1 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.FromWalletType.ToString()} from his USD-Account");
+                _dbContext.ActivityLogs.Add(logEntry1);
+
+            }
+            else if (request.FromWalletType is WalletType.LedgerAccount)
+            {
+
+                var ledgerAccount = await _dbContext.LedgerAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (ledgerAccount is null)
+                {
+                    return BadRequest(new BaseResponse { Message = "Ledger-Account not found", Code = 400, Status = false });
+                }
+
+                if (ledgerAccount.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
+                }
+
+                ledgerAccount.Balance -= request.Amount;
+
+                var logEntry2 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.FromWalletType.ToString()} from his Ledger-Account");
+                _dbContext.ActivityLogs.Add(logEntry2);
+            }
+            else if (request.FromWalletType is WalletType.WalletAccount)
+            {
+                var wallet = await _dbContext.Wallets.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (wallet is null)
+                {
+                    return BadRequest(new BaseResponse { Message = "Wallet not found", Code = 400, Status = false });
+                }
+
+                if (wallet.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse { Message = "Insufficient balance!", Code = 400, Status = false });
+                }
+
+                wallet.Balance -= request.Amount;
+
+                var logEntry3 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.FromWalletType.ToString()} from his wallet-Account");
+                _dbContext.ActivityLogs.Add(logEntry3);
+            }
+            else
+            {
+                return BadRequest(new BaseResponse { Message = "Invalid wallet type", Code = 400, Status = false });
+            }
+
+
+            var transaction = new Transaction()
+            {
+                Amount = request.Amount,
+                SenderId = request.UserId,
+                Status = TransactionStatus.Successful,
+                Type = TransactionType.WireTransfer,
+                Timestamp = DateTime.UtcNow,
+            };
+            await _dbContext.Transactions.AddAsync(transaction);
+
+
+            //var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress}");
+            //_dbContext.ActivityLogs.Add(logEntry);
+
+            var result = await _dbContext.TrySaveChangesAsync();
+            if (result)
+            {
+                var response = new TransactionResponse()
+                {
+                    Amount = transaction.Amount,
+                    Timestamp = transaction.Timestamp,
+                    Status = transaction.Status.ToString(),
+                    Type = transaction.Type.ToString(),
+                    SenderId = transaction.SenderId,
+                    Sender = user.FullName,
+                    SenderEmail = user.Email,
+                    ReceiverWalletAddress = transaction.ReceiverWalletAddress,
+                    Details = transaction.Details,
+                    WalletType = transaction.WalletType.ToString(),
+                };
+
+                //Todo: send email to admin with details
+                return Ok(response);
+            }
+            else
+            {
+                return StatusCode(500, new BaseResponse { Message = "Unable to process transfer please try again later or contact administrator", Status = false });
+            }
+        }
+
 
 
         //[Authorize(Roles = nameof(RoleType.User))]
