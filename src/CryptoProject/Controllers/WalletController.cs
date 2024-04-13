@@ -291,6 +291,7 @@ namespace CryptoProject.Controllers
                     Details = transaction.Details,
                     WalletType = transaction.WalletType.ToString(),
                 };
+
                 //Todo: send email to admin with details
                 return Ok(response);
             }
@@ -338,14 +339,12 @@ namespace CryptoProject.Controllers
                 Sender = t.Sender.FullName,
                 SenderId = t.SenderId,
                 SenderEmail = t.Sender.Email,
-                //Receiver = t.Receiver.FullName,
-                //ReceiverId = t.ReceiverId,
-                //ReceiverEmail = t.Receiver.Email,
                 Status = t.Status.ToString(),
                 Type = t.Type.ToString(),
                 Timestamp = t.Timestamp,
                 ReceiverWalletAddress = t.ReceiverWalletAddress,
                 Details = t.Details,
+                WalletType = t.WalletType.ToString(),
             });
 
             return Ok(response);
