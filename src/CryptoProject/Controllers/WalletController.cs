@@ -442,7 +442,7 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("bitcoin-transfer")]
-        public async Task<ActionResult> BitcoinTransfer([FromBody] WireTransferRequest request)
+        public async Task<ActionResult> BitcoinTransfer([FromBody] BitcoinTransferRequest request)
         {
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
             if (user is null)
@@ -529,11 +529,12 @@ namespace CryptoProject.Controllers
                 Amount = request.Amount,
                 SenderId = request.UserId,
                 ReceiverWalletAddress = request.ReceiverWalletAddress,
-                Details = request.Note,
+                Details = request.Details,
                 Status = TransactionStatus.Successful,
-                Type = TransactionType.WireTransfer,
+                Type = TransactionType.BitcoinTransfer,
                 Timestamp = DateTime.UtcNow,
                 WalletType = request.WalletType,
+                CoinType = request.CoinType,
             };
             await _dbContext.Transactions.AddAsync(transaction);
 
@@ -544,7 +545,7 @@ namespace CryptoProject.Controllers
             var result = await _dbContext.TrySaveChangesAsync();
             if (result)
             {
-                var response = new TransactionResponse()
+                var response = new BitcoinTransferResponse()
                 {
                     Amount = transaction.Amount,
                     Timestamp = transaction.Timestamp,
@@ -556,6 +557,7 @@ namespace CryptoProject.Controllers
                     ReceiverWalletAddress = transaction.ReceiverWalletAddress,
                     Details = transaction.Details,
                     WalletType = transaction.WalletType.ToString(),
+                    CoinType = transaction.CoinType,
                 };
 
                 //Todo: send email to admin with details

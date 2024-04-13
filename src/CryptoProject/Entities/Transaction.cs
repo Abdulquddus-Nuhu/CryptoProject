@@ -12,8 +12,9 @@ namespace CryptoProject.Entities
         public TransactionStatus Status { get; set; }
         public TransactionType Type { get; set; }
 
-        public string Details { get; set; }
-        public string ReceiverWalletAddress { get; set; }
+        public string? Details { get; set; }
+        public string? ReceiverWalletAddress { get; set; }
+        public string? CoinType { get; set; }
 
 
         public User? Sender { get; set; } 
