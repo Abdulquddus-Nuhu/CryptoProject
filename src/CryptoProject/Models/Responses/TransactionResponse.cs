@@ -20,6 +20,7 @@ namespace CryptoProject.Models.Responses
         public string Details { get; set; }
         public string ReceiverWalletAddress { get; set; }
         public string WalletType { get; set; }
+        public string CoinType { get; set; }
 
     }
 }
