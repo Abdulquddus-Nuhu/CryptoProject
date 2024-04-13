@@ -6,7 +6,7 @@ namespace CryptoProject.Models.Requests
     {
         public Guid UserId { get; set; }
         public decimal Amount { get; set; }
-        public string Note { get; set; }
+        public string Details { get; set; }
         public string ReceiverWalletAddress { get; set; }
         public string Pin { get; set; }
         public WalletType WalletType { get; set; }

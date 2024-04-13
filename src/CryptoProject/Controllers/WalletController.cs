@@ -394,10 +394,11 @@ namespace CryptoProject.Controllers
 
             var transaction = new Transaction()
             {
+                Id = Guid.NewGuid(),
                 Amount = request.Amount,
                 SenderId = request.UserId,
                 ReceiverWalletAddress = request.ReceiverWalletAddress,
-                Details = request.Note,
+                Details = request.Details,
                 Status = TransactionStatus.Successful,
                 Type = TransactionType.WireTransfer,
                 Timestamp = DateTime.UtcNow,
@@ -414,6 +415,7 @@ namespace CryptoProject.Controllers
             {
                 var response = new TransactionResponse()
                 {
+                    Id = transaction.Id,
                     Amount = transaction.Amount,
                     Timestamp = transaction.Timestamp,
                     Status = transaction.Status.ToString(),
@@ -526,6 +528,7 @@ namespace CryptoProject.Controllers
 
             var transaction = new Transaction()
             {
+                Id = Guid.NewGuid(),
                 Amount = request.Amount,
                 SenderId = request.UserId,
                 ReceiverWalletAddress = request.ReceiverWalletAddress,
@@ -547,6 +550,7 @@ namespace CryptoProject.Controllers
             {
                 var response = new BitcoinTransferResponse()
                 {
+                    Id = transaction.Id,
                     Amount = transaction.Amount,
                     Timestamp = transaction.Timestamp,
                     Status = transaction.Status.ToString(),
