@@ -21,6 +21,7 @@
         ledgerFundsDeducted,
         UserTransfer,
         UserInitiateTransfer,
+        WalletTranfer,
     }
 
 }

@@ -658,8 +658,22 @@ namespace CryptoProject.Controllers
                     return BadRequest(new BaseResponse { Message = "Invalid target account type", Code = 400, Status = false });
             }
 
+            var transaction = new Transaction
+            {
+                Id = Guid.NewGuid(),
+                Amount = request.Amount,
+                SenderId = request.UserId,
+                ReceiverWalletAddress = "N/A",
+                Details = $"Top-up wallet '{request.ToWalletType.ToString()}' with {request.Amount} from wallet '{request.FromWalletType.ToString()}'",
+                Status = TransactionStatus.Successful,
+                Type = TransactionType.WalletTranfer,
+                Timestamp = DateTime.UtcNow,
+                WalletType = request.FromWalletType
+            };
+            await _dbContext.Transactions.AddAsync(transaction);
+
             // Log activity and save changes
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"Transferred {request.Amount} from {request.FromWalletType.ToString()} to {request.ToWalletType.ToString()}, from balance: {fromAccountBalance}, to balance: {toAccountBalance}");
+            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.WalletTranfer, $"Transferred {request.Amount} from {request.FromWalletType.ToString()} to {request.ToWalletType.ToString()}, from balance: {fromAccountBalance}, to balance: {toAccountBalance}");
             _dbContext.ActivityLogs.Add(logEntry);
 
             var result = await _dbContext.TrySaveChangesAsync();
