@@ -170,7 +170,8 @@ namespace CryptoProject.Controllers
                 Timestamp = t.Timestamp,
                 ReceiverWalletAddress = t.ReceiverWalletAddress,
                 Details = t.Details,
-                WalletType = t.WalletType.ToString()
+                WalletType = t.WalletType.ToString(),
+                CoinType = t.CoinType,
             });
 
             return Ok(response);
