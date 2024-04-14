@@ -197,10 +197,12 @@ namespace CryptoProject.Controllers
                     return BadRequest(new BaseResponse() { Message = "Sender's USD-Account not found", Status = false, Code = 400 });
                 }
 
-                if (transaction.Type == TransactionType.Transfer)
-                {
-                    uSDAccount.Balance += transaction.Amount;
-                }
+                uSDAccount.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //}
 
             }
             else if (transaction.WalletType is WalletType.LedgerAccount)
@@ -211,10 +213,12 @@ namespace CryptoProject.Controllers
                     return BadRequest(new BaseResponse() { Message = "Sender's ledger-Account not found", Status = false, Code = 400 });
                 }
 
-                if (transaction.Type == TransactionType.Transfer)
-                {
-                    ledger.Balance += transaction.Amount;
-                }
+                ledger.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //}
             }
             else if (transaction.WalletType is WalletType.WalletAccount)
             {
@@ -224,10 +228,13 @@ namespace CryptoProject.Controllers
                     return BadRequest(new BaseResponse() { Message = "Sender's wallet-Account not found", Status = false, Code = 400 });
                 }
 
-                if (transaction.Type == TransactionType.Transfer)
-                {
-                    wallet.Balance += transaction.Amount;
-                }
+                wallet.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //    wallet.Balance += transaction.Amount;
+                //}
             }
 
             transaction.Status = TransactionStatus.Reverted;
