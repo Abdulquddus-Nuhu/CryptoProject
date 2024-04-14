@@ -188,6 +188,11 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
+            if (transaction.Status is TransactionStatus.Reverted)
+            {
+                return BadRequest(new BaseResponse() { Message = "Transaction status is already reverted", Status = false, Code = 400 });
+            }
+
 
             if (transaction.WalletType is WalletType.UsdAccount)
             {
