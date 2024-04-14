@@ -50,7 +50,8 @@ namespace CryptoProject.Controllers
         {
             if (accessCode == _accessCode)
             {
-                return Ok(new { Message = "Access granted", Code = accessCode });
+                _logger.LogInformation("Access granted: {0}", accessCode);
+                return Ok(new { Message = "Access granted", });
             }
 
             _logger.LogInformation("Invalid access code supplied: {0}", accessCode);
