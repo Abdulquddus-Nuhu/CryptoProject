@@ -48,7 +48,7 @@ namespace CryptoProject.Controllers
         [HttpPost("verify-code")]
         public IActionResult VerifyAccessCode([FromBody] string accessCode)
         {
-            if (accessCode == _accessCode)
+            if (accessCode.Trim() == _accessCode)
             {
                 _logger.LogInformation("Access granted: {0}", accessCode);
                 return Ok(new { Message = "Access granted", });
