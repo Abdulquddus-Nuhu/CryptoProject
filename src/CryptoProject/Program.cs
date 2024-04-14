@@ -168,17 +168,17 @@ try
     //    options.Filters.Add(new AuthorizeFilter(policy));
     //});
 
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy(name: "MyAllowSpecificOrigins",
-                          builder =>
-                          {
-                              builder
-                                     .AllowAnyOrigin()
-                                     .AllowAnyHeader()
-                                     .AllowAnyMethod();
-                          });
-    });
+    //builder.Services.AddCors(options =>
+    //{
+    //    options.AddPolicy(name: "MyAllowSpecificOrigins",
+    //                      builder =>
+    //                      {
+    //                          builder
+    //                                 .AllowAnyOrigin()
+    //                                 .AllowAnyHeader()
+    //                                 .AllowAnyMethod();
+    //                      });
+    //});
 
 
     //Swagger Authentication/Authorization
@@ -246,7 +246,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseCors("MyAllowSpecificOrigins");
+    //app.UseCors("MyAllowSpecificOrigins");
 
 
     app.MapControllers();
