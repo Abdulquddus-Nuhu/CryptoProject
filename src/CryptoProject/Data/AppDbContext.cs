@@ -22,21 +22,21 @@ namespace CryptoProject.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            var schemaValue = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-            string schema = string.Empty;
-            if (schemaValue == "Staging")
-            {
-                schema = "Staging";
-            }
-            else if (schemaValue == "Production")
-            {
-                schema = "Production";
-            }
-            else
-            {
-                schema = "public";
-            }
-            modelBuilder.HasDefaultSchema(schema);
+            //var schemaValue = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            //string schema = string.Empty;
+            //if (schemaValue == "Staging")
+            //{
+            //    schema = "Staging";
+            //}
+            //else if (schemaValue == "Production")
+            //{
+            //    schema = "Production";
+            //}
+            //else
+            //{
+            //    schema = "public";
+            //}
+            //modelBuilder.HasDefaultSchema(schema);
 
             base.OnModelCreating(modelBuilder);
 
