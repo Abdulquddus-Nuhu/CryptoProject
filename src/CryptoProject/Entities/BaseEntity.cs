@@ -8,8 +8,10 @@
         public virtual DateTime? Deleted { get; protected set; }
         public string? CreatedBy { get; set; } = string.Empty;
         public virtual DateTime Created { get; set; }
-        public virtual DateTime? Modified { get; protected set; }
-        public virtual string? LastModifiedBy { get; protected set; }
+        public virtual DateTime? Modified { get; set; }
+        //public virtual DateTime? Modified { get; protected set; }
+        //public virtual string? LastModifiedBy { get; protected set; }
+        public virtual string? LastModifiedBy { get; set; }
         protected BaseEntity()
         {
             Id = Guid.NewGuid();

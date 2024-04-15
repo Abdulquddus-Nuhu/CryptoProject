@@ -35,7 +35,9 @@
         "ADMIN_PHONENUMBER": "08060216275",
         "ADMIN_PASSWORD": "DefaultPass@1234",
         "JWT_SECRET_KEY": "SampleKey&999666SampleKey&392929SampleKey&392929",
-        "Crptocurrency_API_KEY": "oeoeoeoeoooo"
+        "Crptocurrency_API_KEY": "oeoeoeoeoooo",
+        "ACCESS_CODE": "12345",
+        "DatabaseSchema": "defaultSchema"
       },
       "dotnetRunMessages": true
     },

@@ -1,0 +1,58 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Deploy to Production Digital Ocean Crypto Server 
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+      # dotnet release
+    - name: DotNet Publish
+      run: dotnet publish -c Release
+
+    #copy to server
+    - name: Copy to Server via SCP
+      uses: garygrossgarten/github-action-scp@release
+      with:
+        local: /home/runner/work/CrptoProject/CrptoProject/src/CrptoProject/bin/Release/net8.0/publish/
+        concurrency: 10
+        remote: ${{ secrets.REMOTE_TARGET_PRODUCTION }}
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        password: ${{ secrets.REMOTE_PASSWORD }}
+      env:
+        ASPNETCORE_ENVIRONMENT: Production
+        IT_HEAD_EMAIL: ${{ secrets.IT_HEAD_EMAIL }}
+        IT_HEAD_PASSWORD: ${{ secrets.IT_HEAD_PASSWORD }}
+        IT_HEAD_PHONENUMBER: ${{ secrets.IT_HEAD_PHONENUMBER }}
+        ROOT_ADMIN_EMAIL: ${{ secrets.ROOT_ADMIN_EMAIL }}
+        ROOT_ADMIN_PHONENUMBER: ${{ secrets.ROOT_ADMIN_PHONENUMBER }}
+        ROOT_DEFAULT_PASSWORD: ${{ secrets.ROOT_DEFAULT_PASSWORD }}
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+
+    #start service
+    - name: Start CryptoProduction Service
+      uses: garygrossgarten/github-action-ssh@v0.6.3
+      with:
+        command: service CryptoProduction restart
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        password: ${{ secrets.REMOTE_PASSWORD }}

@@ -30,7 +30,10 @@ namespace CryptoProject.Models.Responses
         public decimal? LedgerAccountBalance { get; set; }
         public Guid? USDAccountId { get; set; }
         public decimal? USDAccountBalance { get; set; }
-        public string CryptoKey { get; set; }
+        public string LedgerAccountNumber { get; set; }
+        public string Pin { get; set; }
+        public string Country { get; set; }
+        public string AccountNumber { get; set; }
     }
 
 }

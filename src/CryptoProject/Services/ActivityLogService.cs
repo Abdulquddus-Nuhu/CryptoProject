@@ -5,7 +5,7 @@ namespace CryptoProject.Services
 {
     public static class ActivityLogService
     {
-        public static ActivityLog CreateLogEntry(Guid userId, string userEmail, ActivityType activityType, params object[] additionalInfo)
+        public static ActivityLog CreateLogEntry(Guid? userId, string userEmail, ActivityType activityType, params object[] additionalInfo)
         {
             var logEntry = new ActivityLog
             {

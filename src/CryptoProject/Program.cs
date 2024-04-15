@@ -5,6 +5,8 @@ using CryptoProject.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -97,6 +99,7 @@ try
         options.UseNpgsql(connectionString);
     });
 
+
     builder.Services.AddIdentity<User, Role>(
                options =>
                {
@@ -113,12 +116,21 @@ try
 
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<EmailService>();
+    builder.Services.AddScoped<OtpGenerator>();
+    builder.Services.AddScoped<EmailService>(provider =>
+    {
+        return new EmailService(builder.Environment,
+            builder.Configuration,
+            provider.GetRequiredService<ILogger<EmailService>>()
+        );
+    });
+
 
     // Register the worker responsible of seeding the database.
     builder.Services.AddHostedService<SeedDb>();
 
 
-    var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY"));
+    var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? string.Empty);
     var tokenValidationParams = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
@@ -157,16 +169,17 @@ try
     //    options.Filters.Add(new AuthorizeFilter(policy));
     //});
 
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy(name: "MyAllowSpecificOrigins",
-                          builder =>
-                          {
-                              builder.WithOrigins("http://localhost:3000/")
-                                     .AllowAnyHeader()
-                                     .AllowAnyMethod();
-                          });
-    });
+    //builder.Services.AddCors(options =>
+    //{
+    //    options.AddPolicy(name: "MyAllowSpecificOrigins",
+    //                      builder =>
+    //                      {
+    //                          builder
+    //                                 .AllowAnyOrigin()
+    //                                 .AllowAnyHeader()
+    //                                 .AllowAnyMethod();
+    //                      });
+    //});
 
 
     //Swagger Authentication/Authorization
@@ -195,25 +208,46 @@ try
         });
     });
 
+    // Security and Production enhancements 
+    if (!builder.Environment.IsDevelopment())
+    {
+        // Proxy Server Config
+        builder.Services.Configure<ForwardedHeadersOptions>(
+              options =>
+              {
+                  options.ForwardedHeaders =
+                      ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+              });
+
+        //Persist key
+        builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("/var/keys"));
+    }
+
+    //Remove Server Header
+    builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
+
+
 
     var app = builder.Build();
 
-    // Configure the HTTP request pipeline.
-    //if (app.Environment.IsDevelopment())
-    //{
-    //    app.UseSwagger();
-    //    app.UseSwaggerUI();
-    //}
-
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    //Configure the HTTP request pipeline.
+    if (!app.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.UseHttpsRedirection();
+
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseCors("MyAllowSpecificOrigins");
+    //app.UseCors("MyAllowSpecificOrigins");
 
 
     app.MapControllers();

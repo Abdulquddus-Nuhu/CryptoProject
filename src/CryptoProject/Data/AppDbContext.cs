@@ -10,7 +10,9 @@ namespace CryptoProject.Data
 {
     public class AppDbContext : IdentityDbContext<User, Role, Guid>
     {
-        public AppDbContext(DbContextOptions<AppDbContext> opt) : base(opt) { }
+        public AppDbContext(DbContextOptions<AppDbContext> opt) : base(opt)
+        {
+        }
 
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
         public DbSet<Wallet> Wallets => Set<Wallet>();
@@ -20,6 +22,22 @@ namespace CryptoProject.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            var schemaValue = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            string schema = string.Empty;
+            if (schemaValue == "Staging")
+            {
+                schema = "staging";
+            }
+            else if (schemaValue == "Production")
+            {
+                schema = "Production";
+            }
+            else
+            {
+                schema = "public";
+            }
+            modelBuilder.HasDefaultSchema(schema);
+
             base.OnModelCreating(modelBuilder);
 
             // Configure the one-to-one relationship between User and Wallet
@@ -37,6 +55,24 @@ namespace CryptoProject.Data
                .HasOne(u => u.USDAccount)  // User has one Wallet
                .WithOne(w => w.User)  // Wallet is associated with one User
                .HasForeignKey<USDAccount>(w => w.UserId);
+
+            //Account Number Sequence generation
+            //modelBuilder.HasSequence<int>("AccountNumberSeq", schema: "dbo")
+            //    .StartsAt(0002753554) // Start from a specific 10-digit number
+            //    .IncrementsBy(1);
+
+            //modelBuilder.Entity<User>()
+            //    .Property(o => o.AccountNumber)
+            //    .HasDefaultValueSql("NEXT VALUE FOR dbo.AccountNumberSeq");
+
+            modelBuilder.HasSequence<int>("AccountNumberSeq", schema: "public")
+                .StartsAt(2000753554)
+                .IncrementsBy(1);
+
+            modelBuilder.Entity<User>()
+                .Property(o => o.AccountNumber)
+                .HasDefaultValueSql("nextval('public.\"AccountNumberSeq\"')");
+
         }
 
 

@@ -2,10 +2,9 @@
 
 namespace CryptoProject.Models.Requests
 {
-    public record DebitRequest
+    public class GetBalanceRequest
     {
         public Guid UserId { get; set; }
-        public decimal Amount { get; set; }
         public WalletType WalletType { get; set; }
     }
 }

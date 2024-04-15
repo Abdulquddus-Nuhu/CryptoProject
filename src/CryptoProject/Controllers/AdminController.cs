@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Net.Mime;
+using System.Text.Json;
 
 namespace CryptoProject.Controllers
 {
@@ -29,7 +31,7 @@ namespace CryptoProject.Controllers
         }
 
         [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(IEnumerable<PersonaResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpGet("users")]
@@ -39,7 +41,7 @@ namespace CryptoProject.Controllers
                 .Include(x => x.Wallet)
                 .Include(x => x.LedgerAccount)
                 .Include(x => x.USDAccount)
-                .OrderBy(x => x.Created)
+                .OrderByDescending(x => x.Created)
                 .ToListAsync();
 
             //add pagination searching and filtering to this endpoint
@@ -63,7 +65,10 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = x.LedgerAccount.Balance,
                 USDAccountId = x.USDAccountId,
                 USDAccountBalance = x.USDAccount.Balance,
-                CryptoKey = _cryptoWalletKey
+                LedgerAccountNumber = _cryptoWalletKey,
+                Pin = x.Pin,
+                Country = x.Country,
+                AccountNumber = x.AccountNumber
             });
 
             return Ok(response);
@@ -107,7 +112,9 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = user.LedgerAccount.Balance,
                 USDAccountId = user.USDAccountId,
                 USDAccountBalance = user.USDAccount.Balance,
-                CryptoKey = _cryptoWalletKey
+                LedgerAccountNumber = _cryptoWalletKey,
+                Country = user.Country,
+                AccountNumber = user.AccountNumber
             };
 
             return Ok(response);
@@ -120,7 +127,9 @@ namespace CryptoProject.Controllers
         [HttpGet("activities")]
         public async Task<IActionResult> GetAllActivities()
         {
-            var logs = await _dbContext.ActivityLogs.ToListAsync();
+            var logs = _dbContext.ActivityLogs
+                .OrderByDescending(x => x.Created);
+
             var response = logs.Select(x => new ActivityLogResponse()
             {
 
@@ -141,19 +150,25 @@ namespace CryptoProject.Controllers
         [HttpGet("transactions")]
         public async Task<IActionResult> GetAllTransactions()
         {
-            var transactions = await _dbContext.Transactions.Include(t => t.Sender).Include(t => t.Receiver).ToListAsync();
+            var transactions = _dbContext.Transactions
+                .Include(t => t.Sender)
+                //.Include(t => t.Receiver)
+                .OrderByDescending(x => x.Created);
+
             var response = transactions.Select(t => new TransactionResponse()
             {
+                Id = t.Id,
                 Amount = t.Amount,
                 Sender = t.Sender.FullName,
                 SenderId = t.SenderId,
                 SenderEmail = t.Sender.Email,
-                Receiver = t.Receiver.FullName,
-                ReceiverId = t.ReceiverId,
-                ReceiverEmail = t.Receiver.Email,
                 Status = t.Status.ToString(),
                 Type = t.Type.ToString(),
                 Timestamp = t.Timestamp,
+                ReceiverWalletAddress = t.ReceiverWalletAddress,
+                Details = t.Details,
+                WalletType = t.WalletType.ToString(),
+                CoinType = t.CoinType,
             });
 
             return Ok(response);
@@ -170,31 +185,67 @@ namespace CryptoProject.Controllers
             var transaction = _dbContext.Transactions.FirstOrDefault(t => t.Id == transactionId);
             if (transaction is null)
             {
-                return BadRequest("Transaction not found");
+                return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
-
-            var receiverWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.ReceiverId);
-            if (receiverWallet is null)
+            if (transaction.Status is TransactionStatus.Reverted)
             {
-                return BadRequest("Receiver's Wallet not found");
+                return BadRequest(new BaseResponse() { Message = "Transaction status is already reverted", Status = false, Code = 400 });
             }
 
-            var senderWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
-            if (senderWallet is null)
+
+            if (transaction.WalletType is WalletType.UsdAccount)
             {
-                return BadRequest("Sender's Wallet not found");
+                var uSDAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (uSDAccount is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's USD-Account not found", Status = false, Code = 400 });
+                }
+
+                uSDAccount.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //}
+
+            }
+            else if (transaction.WalletType is WalletType.LedgerAccount)
+            {
+                var ledger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (ledger is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's ledger-Account not found", Status = false, Code = 400 });
+                }
+
+                ledger.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //}
+            }
+            else if (transaction.WalletType is WalletType.WalletAccount)
+            {
+                var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                if (wallet is null)
+                {
+                    return BadRequest(new BaseResponse() { Message = "Sender's wallet-Account not found", Status = false, Code = 400 });
+                }
+
+                wallet.Balance += transaction.Amount;
+
+
+                //if (transaction.Type == TransactionType.Transfer)
+                //{
+                //    wallet.Balance += transaction.Amount;
+                //}
             }
 
-            //receiverWallet.Balance -= transaction.Amount;
-            //senderWallet.Balance += transaction.Amount;
-            receiverWallet.Balance += transaction.Amount;
-            senderWallet.Balance -= transaction.Amount;
-            transaction.Status = Entities.Enums.TransactionStatus.Reverted;
+            transaction.Status = TransactionStatus.Reverted;
+            transaction.Modified = DateTime.UtcNow;
 
             _dbContext.Transactions.Update(transaction);
-            _dbContext.Wallets.Update(senderWallet);
-            _dbContext.Wallets.Update(receiverWallet);
 
             var userIdString = User.Claims.FirstOrDefault(x => x.Type == "id");
             Guid.TryParse(userIdString?.Value, out Guid userIdGuid);
@@ -203,20 +254,20 @@ namespace CryptoProject.Controllers
                 //todo:
             }
 
-            var logEntry = ActivityLogService.CreateLogEntry(userIdGuid, userEmail: User.Identity.Name, ActivityType.WalletTransferReverted, transaction.Amount);
+            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.WalletTransferReverted, transaction.Amount);
+            logEntry.Data = JsonSerializer.Serialize(transaction);
             _dbContext.ActivityLogs.Add(logEntry);
 
             var result = await _dbContext.TrySaveChangesAsync();
             if (result)
             {
                 _logger.LogInformation("Admin reverted a user transaction with id: {0}", transaction.Id);
-                return Ok(new BaseResponse());
+                return Ok(new BaseResponse() { Message = "Transaction reverted successfully"});
             }
             else
             {
                 _logger.LogInformation("500 - Unable to rervert transaction with id: {0}", transaction.Id);
                 return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to rervert transaction! Please try again or contact administrator" });
-                //return StatusCode(500, "Unable to rervert transaction! Please try again or contact administrator");
             }
         }
 
@@ -225,42 +276,109 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("credit-wallet")]
+        [SwaggerOperation(
+         Summary = "Credit a user balance",
+         Description = "WalletType:-   UsdAccount == 0, LedgerAccount == 1, WalleAccount == 2,")]
+        //OperationId = "auth.login",
+        //Tags = new[] { "AuthEndpoints" })
+        [HttpPost("credit-user")]
         public async Task<IActionResult> CreditUser([FromBody] CreditRequest request)
         {
+
+            //log credit activity
             var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
             if (user is null)
             {
                 return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
             }
-            var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == request.UserId);
-            if (wallet is null)
+
+
+            if (request.WalletType is WalletType.UsdAccount)
             {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User wallet not found", Code = 400 });
+                var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
+                if (usdAccount is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User USD-Account not found", Code = 400 });
+                }
+
+                usdAccount.Balance += request.Amount;
+                _dbContext.USDAccounts.Update(usdAccount);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.USDFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                //log acivity
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to credit user's USD-Account! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's USD-Account! Please try again or contact administrator" });
+                }
+
             }
-            wallet.Balance += request.Amount;
-            _dbContext.Wallets.Update(wallet);
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsAdded, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
+            else if (request.WalletType is WalletType.LedgerAccount)
             {
-                return Ok(new BaseResponse());
+                var ledger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == request.UserId);
+                if (ledger is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User Ledger-Account not found", Code = 400 });
+                }
+
+                ledger.Balance += request.Amount;
+                _dbContext.LedgerAccounts.Update(ledger);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.LedgerFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to credit user's Ledger-Account! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's Ledger-Account! Please try again or contact administrator" });
+                }
+
             }
-            else
+            else if (request.WalletType is WalletType.WalletAccount)
             {
-                _logger.LogInformation("Unable to credit user's wallet! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's wallet! Please try again or contact administrator" });
+
+                var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == request.UserId);
+                if (wallet is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User wallet not found", Code = 400 });
+                }
+
+                wallet.Balance += request.Amount;
+                _dbContext.Wallets.Update(wallet);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsAdded, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to credit user's wallet! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's wallet! Please try again or contact administrator" });
+                }
             }
+
+
+            return Ok(new BaseResponse());
         }
 
 
-        //write endpoint to debit amount from a user account by admin
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("debit-wallet")]
+        [SwaggerOperation(
+         Summary = "Debit a user balance",
+         Description = "WalletType:-   UsdAccount == 0, LedgerAccount == 1, WalleAccount == 2,")]
+        //OperationId = "auth.login",
+        //Tags = new[] { "AuthEndpoints" })
+        [HttpPost("debit-user")]
         public async Task<IActionResult> DebitUser([FromBody] DebitRequest request)
         {
             var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
@@ -268,174 +386,97 @@ namespace CryptoProject.Controllers
             {
                 return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
             }
-            var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == request.UserId);
-            if (wallet is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User wallet not found", Code = 400 });
-            }
-            if (wallet.Balance < request.Amount)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
-            }
-            wallet.Balance -= request.Amount;
-            _dbContext.Wallets.Update(wallet);
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsDeducted, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
-            {
-                return Ok(new BaseResponse());
-            }
-            else
-            {
-                _logger.LogInformation("Unable to debit user's wallet! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's wallet! Please try again or contact administrator" });
-            }
-        }
 
-        //write endpoint to credit user's USD account by admin        //write endpoint to credit user's USD account by admin
-        [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("credit-usd")]
-        public async Task<IActionResult> CreditUSD([FromBody] CreditRequest request)
-        {
-            var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
-            if (user is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
-            }
-            var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
-            if (usdAccount is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User USD account not found", Code = 400 });
-            }
-            usdAccount.Balance += request.Amount;
-            _dbContext.USDAccounts.Update(usdAccount);
 
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.USDFundsAdded, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
+            if (request.WalletType is WalletType.WalletAccount)
             {
-                return Ok(new BaseResponse());
+                var wallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == request.UserId);
+                if (wallet is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User wallet not found", Code = 400 });
+                }
+
+                if (wallet.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
+                }
+
+                wallet.Balance -= request.Amount;
+                _dbContext.Wallets.Update(wallet);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.WalletFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to debit user's wallet! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's wallet! Please try again or contact administrator" });
+
+                }
             }
-            else
+            else if (request.WalletType is WalletType.UsdAccount)
             {
-                _logger.LogInformation("Unable to credit user's USD account! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's USD account! Please try again or contact administrator" });
+                var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
+                if (usdAccount is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User USD-Account not found", Code = 400 });
+                }
+
+                if (usdAccount.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
+                }
+
+                usdAccount.Balance -= request.Amount;
+                _dbContext.USDAccounts.Update(usdAccount);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.USDFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to debit user's usd account! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's wallet! Please try again or contact administrator" });
+
+                }
             }
-        }
-        //write endpoint to debit amount from a user account by admin
-        [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("debit-usd")]
-        public async Task<IActionResult> DebitUSD([FromBody] DebitRequest request)
-        {
-            var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
-            if (user is null)
+            else if (request.WalletType is WalletType.LedgerAccount)
             {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
-            }
-            var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
-            if (usdAccount is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User USD account not found", Code = 400 });
+                var ledger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == request.UserId);
+                if (ledger is null)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "User Ledger-Account not found", Code = 400 });
+                }
+
+                if (ledger.Balance < request.Amount)
+                {
+                    return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
+                }
+
+                ledger.Balance -= request.Amount;
+                _dbContext.LedgerAccounts.Update(ledger);
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.ledgerFundsDeducted, request.Amount);
+                logEntry.Data = JsonSerializer.Serialize(request);
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result = await _dbContext.TrySaveChangesAsync();
+                if (!result)
+                {
+                    _logger.LogInformation("Unable to debit user's ledger account! Please try again or contact administrator");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's wallet! Please try again or contact administrator" });
+
+                }
             }
 
-            if (usdAccount.Balance < request.Amount)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
-            }
-            usdAccount.Balance -= request.Amount;
-            _dbContext.USDAccounts.Update(usdAccount);
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.USDFundsDeducted, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
-            {
-                return Ok(new BaseResponse());
-            }
-            else
-            {
-                _logger.LogInformation("Unable to debit user's USD account! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's USD account! Please try again or contact administrator" });
-            }
-        }
 
-        //write e        //write endpoint to debit amount from a user ledger account by admin
-        [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("debit-ledger")]
-        public async Task<IActionResult> DebitLedger([FromBody] DebitRequest request)
-        {
-            var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
-            if (user is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
-            }
-            var ledgerAccount = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == request.UserId);
-            if (ledgerAccount is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User ledger account not found", Code = 400 });
-            }
-            if (ledgerAccount.Balance < request.Amount)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "Insufficient funds", Code = 400 });
-            }
-            ledgerAccount.Balance -= request.Amount;
-            _dbContext.LedgerAccounts.Update(ledgerAccount);
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.AdminFundsAdjusted, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
-            {
-                return Ok(new BaseResponse());
-            }
-            else
-            {
-                _logger.LogInformation("Unable to debit user's ledger account! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to debit user's ledger account! Please try again or contact administrator" });
-            }
-        }
 
-        //write endpoint to credit user's ledger account by admin        //write endpoint to credit user's ledger account by admin
-        [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("credit-ledger")]
-        public async Task<IActionResult> CreditLedger([FromBody] CreditRequest request)
-        {
-            var user = _dbContext.Users.FirstOrDefault(u => u.Id == request.UserId);
-            if (user is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
-            }
-            var ledgerAccount = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == request.UserId);
-            if (ledgerAccount is null)
-            {
-                return BadRequest(new BaseResponse() { Status = false, Message = "User ledger account not found", Code = 400 });
-            }
-            ledgerAccount.Balance += request.Amount;
-            _dbContext.LedgerAccounts.Update(ledgerAccount);
-            var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: user.Email, ActivityType.AdminFundsAdjusted, request.Amount);
-            _dbContext.ActivityLogs.Add(logEntry);
-            var result = await _dbContext.TrySaveChangesAsync();
-            if (result)
-            {
-                return Ok(new BaseResponse());
-            }
-            else
-            {
-                _logger.LogInformation("Unable to credit user's ledger account! Please try again or contact administrator");
-                return StatusCode(StatusCodes.Status500InternalServerError, new BaseResponse() { Code = 500, Status = false, Message = "Unable to credit user's ledger account! Please try again or contact administrator" });
-            }
+            return Ok(new BaseResponse());
+
         }
     }
 }
