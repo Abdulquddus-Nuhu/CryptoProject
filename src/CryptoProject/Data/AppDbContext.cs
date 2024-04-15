@@ -26,7 +26,7 @@ namespace CryptoProject.Data
             string schema = string.Empty;
             if (schemaValue == "Staging")
             {
-                schema = "staging";
+                schema = "Staging";
             }
             else if (schemaValue == "Production")
             {
