@@ -1,7 +1,7 @@
 # This workflow will build a .NET project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
-name: Deploy to Production Digital Ocean Crypto Server 
+name: Deploy to production Digital Ocean Crypto Server 
 
 on:
   push:
@@ -32,14 +32,14 @@ jobs:
     - name: Copy to Server via SCP
       uses: garygrossgarten/github-action-scp@release
       with:
-        local: /home/runner/work/CrptoProject/CrptoProject/src/CrptoProject/bin/Release/net8.0/publish/
+        local: /home/runner/work/CryptoProject/CryptoProject/src/CryptoProject/bin/Release/net8.0/publish/
         concurrency: 10
         remote: ${{ secrets.REMOTE_TARGET_PRODUCTION }}
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         password: ${{ secrets.REMOTE_PASSWORD }}
       env:
-        ASPNETCORE_ENVIRONMENT: Production
+        ASPNETCORE_ENVIRONMENT: Staging
         IT_HEAD_EMAIL: ${{ secrets.IT_HEAD_EMAIL }}
         IT_HEAD_PASSWORD: ${{ secrets.IT_HEAD_PASSWORD }}
         IT_HEAD_PHONENUMBER: ${{ secrets.IT_HEAD_PHONENUMBER }}
