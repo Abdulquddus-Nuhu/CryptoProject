@@ -99,6 +99,7 @@ try
         options.UseNpgsql(connectionString);
     });
 
+
     builder.Services.AddIdentity<User, Role>(
                options =>
                {
