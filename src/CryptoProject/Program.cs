@@ -129,7 +129,7 @@ try
     builder.Services.AddHostedService<SeedDb>();
 
 
-    var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY"));
+    var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? string.Empty);
     var tokenValidationParams = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CryptoProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240413134707_modifyTransaction")]
-    partial class modifyTransaction
+    [Migration("20240415220338_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

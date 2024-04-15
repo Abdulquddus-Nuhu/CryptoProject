@@ -143,8 +143,9 @@ CREATE TABLE "Transactions" (
     "Timestamp" timestamp with time zone NOT NULL,
     "Status" integer NOT NULL,
     "Type" integer NOT NULL,
-    "Details" text NOT NULL,
-    "ReceiverWalletAddress" text NOT NULL,
+    "Details" text,
+    "ReceiverWalletAddress" text,
+    "CoinType" text,
     "WalletType" integer NOT NULL,
     "IsDeleted" boolean NOT NULL,
     "DeletedBy" text,
@@ -215,21 +216,7 @@ CREATE UNIQUE INDEX "IX_USDAccounts_UserId" ON "USDAccounts" ("UserId");
 CREATE UNIQUE INDEX "IX_Wallets_UserId" ON "Wallets" ("UserId");
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20240408105338_init', '8.0.3');
+VALUES ('20240415220338_init', '8.0.3');
 
 COMMIT;
-
-START TRANSACTION;
-
-ALTER TABLE "Transactions" ALTER COLUMN "ReceiverWalletAddress" DROP NOT NULL;
-
-ALTER TABLE "Transactions" ALTER COLUMN "Details" DROP NOT NULL;
-
-ALTER TABLE "Transactions" ADD "CoinType" text;
-
-INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20240413134707_modifyTransaction', '8.0.3');
-
-COMMIT;
-
 
