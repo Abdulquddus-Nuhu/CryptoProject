@@ -20,7 +20,7 @@ namespace CryptoProject.SeedDatabase
             try
             {
                 logger.LogInformation("Applying Crypto_Db Migration!");
-                await context.Database.EnsureCreatedAsync();
+                //await context.Database.EnsureCreatedAsync();
                 await context.Database.MigrateAsync(cancellationToken: cancellationToken);
                 logger.LogInformation("Crypto_Db Migration Successful!");
             }
