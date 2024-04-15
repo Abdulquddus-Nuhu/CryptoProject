@@ -10,7 +10,9 @@ namespace CryptoProject.Data
 {
     public class AppDbContext : IdentityDbContext<User, Role, Guid>
     {
-        public AppDbContext(DbContextOptions<AppDbContext> opt) : base(opt) { }
+        public AppDbContext(DbContextOptions<AppDbContext> opt) : base(opt)
+        {
+        }
 
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
         public DbSet<Wallet> Wallets => Set<Wallet>();
@@ -20,6 +22,22 @@ namespace CryptoProject.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            var schemaValue = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            string schema = string.Empty;
+            if (schemaValue == "Staging")
+            {
+                schema = "staging";
+            }
+            else if (schemaValue == "Production")
+            {
+                schema = "Production";
+            }
+            else
+            {
+                schema = "public";
+            }
+            modelBuilder.HasDefaultSchema(schema);
+
             base.OnModelCreating(modelBuilder);
 
             // Configure the one-to-one relationship between User and Wallet

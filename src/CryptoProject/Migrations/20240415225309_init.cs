@@ -22,6 +22,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -36,6 +37,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUsers",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -83,6 +85,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -97,6 +100,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
                         column: x => x.RoleId,
+                        principalSchema: "public",
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -104,6 +108,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "ActivityLogs",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -127,12 +132,14 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_ActivityLogs_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserClaims",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
@@ -147,6 +154,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserClaims_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -154,6 +162,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserLogins",
+                schema: "public",
                 columns: table => new
                 {
                     LoginProvider = table.Column<string>(type: "text", nullable: false),
@@ -167,6 +176,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserLogins_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -174,6 +184,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserRoles",
+                schema: "public",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -185,12 +196,14 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
                         column: x => x.RoleId,
+                        principalSchema: "public",
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -198,6 +211,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AspNetUserTokens",
+                schema: "public",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -211,6 +225,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUserTokens_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -218,6 +233,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "LedgerAccounts",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -237,6 +253,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_LedgerAccounts_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -244,6 +261,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Transactions",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -253,8 +271,9 @@ namespace CryptoProject.Migrations
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
-                    Details = table.Column<string>(type: "text", nullable: false),
-                    ReceiverWalletAddress = table.Column<string>(type: "text", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    ReceiverWalletAddress = table.Column<string>(type: "text", nullable: true),
+                    CoinType = table.Column<string>(type: "text", nullable: true),
                     WalletType = table.Column<int>(type: "integer", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedBy = table.Column<string>(type: "text", nullable: true),
@@ -270,17 +289,20 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_Transactions_AspNetUsers_ReceiverId",
                         column: x => x.ReceiverId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Transactions_AspNetUsers_SenderId",
                         column: x => x.SenderId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "USDAccounts",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -300,6 +322,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_USDAccounts_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -307,6 +330,7 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Wallets",
+                schema: "public",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -326,6 +350,7 @@ namespace CryptoProject.Migrations
                     table.ForeignKey(
                         name: "FK_Wallets_AspNetUsers_UserId",
                         column: x => x.UserId,
+                        principalSchema: "public",
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -333,70 +358,83 @@ namespace CryptoProject.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ActivityLogs_UserId",
+                schema: "public",
                 table: "ActivityLogs",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
+                schema: "public",
                 table: "AspNetRoleClaims",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
+                schema: "public",
                 table: "AspNetRoles",
                 column: "NormalizedName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
+                schema: "public",
                 table: "AspNetUserClaims",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserLogins_UserId",
+                schema: "public",
                 table: "AspNetUserLogins",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserRoles_RoleId",
+                schema: "public",
                 table: "AspNetUserRoles",
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
+                schema: "public",
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
+                schema: "public",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_LedgerAccounts_UserId",
+                schema: "public",
                 table: "LedgerAccounts",
                 column: "UserId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_ReceiverId",
+                schema: "public",
                 table: "Transactions",
                 column: "ReceiverId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_SenderId",
+                schema: "public",
                 table: "Transactions",
                 column: "SenderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_USDAccounts_UserId",
+                schema: "public",
                 table: "USDAccounts",
                 column: "UserId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Wallets_UserId",
+                schema: "public",
                 table: "Wallets",
                 column: "UserId",
                 unique: true);
@@ -406,40 +444,52 @@ namespace CryptoProject.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ActivityLogs");
+                name: "ActivityLogs",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoleClaims");
+                name: "AspNetRoleClaims",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserClaims");
+                name: "AspNetUserClaims",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserLogins");
+                name: "AspNetUserLogins",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserRoles");
+                name: "AspNetUserRoles",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetUserTokens");
+                name: "AspNetUserTokens",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "LedgerAccounts");
+                name: "LedgerAccounts",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "Transactions");
+                name: "Transactions",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "USDAccounts");
+                name: "USDAccounts",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "Wallets");
+                name: "Wallets",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "AspNetRoles",
+                schema: "public");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "AspNetUsers",
+                schema: "public");
 
             migrationBuilder.DropSequence(
                 name: "AccountNumberSeq",
