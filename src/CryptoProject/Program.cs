@@ -241,6 +241,7 @@ try
     app.UseSwaggerUI();
 
     app.UseHttpsRedirection();
+    app.UseHsts();
 
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
