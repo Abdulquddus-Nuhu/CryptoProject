@@ -240,8 +240,8 @@ try
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    app.UseHttpsRedirection();
     app.UseHsts();
+    app.UseHttpsRedirection();
 
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
