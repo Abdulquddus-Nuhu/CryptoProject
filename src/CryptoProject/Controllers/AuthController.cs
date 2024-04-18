@@ -92,6 +92,7 @@ namespace CryptoProject.Controllers
                 Country = model.Country,
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
+                Password = model.Password,
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -139,10 +140,40 @@ namespace CryptoProject.Controllers
                     Data = JsonSerializer.Serialize(model)
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
-
                 //Todo: send email to user/admin with details
                 await _dbContext.SaveChangesAsync();
-                return StatusCode(201);
+
+
+                //get a user from database including account number
+                var newUser = await _userManager.FindByEmailAsync(user.Email);
+                if (newUser is null)
+                {
+                    return StatusCode(201);
+                }
+
+                var userResponse = new UserResponse()
+                {
+                    Id = newUser.Id,
+                    AccountNumber = newUser.AccountNumber,
+                    PhoneNumber = newUser.PhoneNumber,
+                    USDAccountBalance = 0,
+                    City = newUser.City,
+                    Country = newUser.Country,
+                    AccountType = newUser.AccountType.ToString(),
+                    Address = newUser.Address,
+                    LedgerAccountBalance = 0,
+                    Email = newUser.Email,
+                    FirstName = newUser.FirstName,
+                    LastName = newUser.LastName,
+                    MiddleName = newUser.MiddleName,
+                    Pin = newUser.Pin,
+                    State = newUser.State,
+                    WalletBalance = 0,
+                    Role = newUser.Role.ToString(),
+                    LedgerAccountNumber = _cryptoWalletKey,
+                };
+
+                return StatusCode(201, userResponse);
             }
 
             _logger.LogInformation(result.Errors.First().ToString());
@@ -200,12 +231,6 @@ namespace CryptoProject.Controllers
                 loginResponse.Address = user.Address;
                 loginResponse.State = user.State;
                 loginResponse.City = user.City;
-                //loginResponse.WalletId = user.WalletId;
-                //loginResponse.WalletBalance = userAccount?.Wallet.Balance ?? 0;
-                //loginResponse.LedgerAccountId = userAccount.USDAccountId;
-                //loginResponse.LedgerAccountBalance = userAccount?.LedgerAccount?.Balance ?? 0;
-                //loginResponse.USDAccountId = userAccount.USDAccountId;
-                //loginResponse.USDAccountBalance = userAccount?.USDAccount?.Balance ?? 0;
                 loginResponse.LedgerAccountNumber = _cryptoWalletKey;
             }
             else
@@ -238,6 +263,24 @@ namespace CryptoProject.Controllers
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, false, false);
             if (result.Succeeded)
             {
+                if (user.IsActive is false)
+                {
+                    var activityLogFalse = new ActivityLog
+                    {
+                        UserId = user.Id,
+                        UserEmail = user.Email,
+                        ActivityType = ActivityType.UserLoggedIn,
+                        Timestamp = DateTime.UtcNow,
+                        Details = $"User with email {user.Email} logged in but account is not active",
+                    };
+                    await _dbContext.ActivityLogs.AddAsync(activityLogFalse);
+                    await _dbContext.SaveChangesAsync();
+
+
+                    _logger.LogInformation("User with email {0} logged in but account is not active", request.Email);
+                    return Unauthorized(new BaseResponse() { Message = "Account is not active", Code = 401, Status = false });
+                }
+
                 var activityLog = new ActivityLog
                 {
                     UserId = user.Id,
@@ -245,7 +288,6 @@ namespace CryptoProject.Controllers
                     ActivityType = ActivityType.UserLoggedIn,
                     Timestamp = DateTime.UtcNow,
                     Details = $"User with email {user.Email} logged in",
-                    Data = JsonSerializer.Serialize(request)
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
                 await _dbContext.SaveChangesAsync();
