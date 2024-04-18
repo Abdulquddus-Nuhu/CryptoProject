@@ -47,6 +47,7 @@ namespace CryptoProject.Controllers
             //add pagination searching and filtering to this endpoint
             var response = users.Select(x => new UserResponse()
             {
+                IsActive = x.IsActive,
                 Email = x.Email,
                 FirstName = x.FirstName,
                 LastName = x.LastName,
@@ -94,6 +95,7 @@ namespace CryptoProject.Controllers
 
             var response = new UserResponse()
             {
+                IsActive = user.IsActive,
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
@@ -119,6 +121,57 @@ namespace CryptoProject.Controllers
 
             return Ok(response);
         }
+
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPost("activate-user/{userId}")]
+        public async Task<IActionResult> ActivateUserAccount(Guid userId)
+        {
+            var user = await _dbContext.Users
+                .Include(x => x.Wallet)
+                .Include(x => x.LedgerAccount)
+                .Include(x => x.USDAccount)
+                .FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user is null)
+            {
+                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
+            }
+
+            user.IsActive = true;
+            await _dbContext.SaveChangesAsync();
+
+            var response = new UserResponse()
+            {
+                IsActive = user.IsActive,
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                MiddleName = user.MiddleName,
+                Email = user.Email,
+                UserName = user.UserName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role.ToString(),
+                AccountType = user.AccountType.ToString(),
+                Address = user.Address,
+                City = user.City,
+                State = user.State,
+                WalletId = user.WalletId,
+                WalletBalance = user.Wallet?.Balance,
+                LedgerAccountId = user.LedgerAccountId,
+                LedgerAccountBalance = user.LedgerAccount.Balance,
+                USDAccountId = user.USDAccountId,
+                USDAccountBalance = user.USDAccount.Balance,
+                LedgerAccountNumber = _cryptoWalletKey,
+                Country = user.Country,
+                AccountNumber = user.AccountNumber
+            };
+
+            return Ok(new { message = "User account activated", response = response });
+        }
+
 
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(IEnumerable<ActivityLogResponse>), StatusCodes.Status200OK)]
