@@ -34,6 +34,7 @@ namespace CryptoProject.Models.Responses
         public string Pin { get; set; }
         public string Country { get; set; }
         public string AccountNumber { get; set; }
+        public bool IsActive { get; set; }
     }
 
 }
