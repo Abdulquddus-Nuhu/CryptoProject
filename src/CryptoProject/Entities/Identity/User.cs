@@ -30,7 +30,7 @@ namespace CryptoProject.Entities.Identity
         public string? Pin { get; set; }
 
         public string? PinHash { get; set; }
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; } = false;
         public Guid? WalletId { get; set; }
         public Wallet Wallet { get; set; }
 
@@ -42,6 +42,7 @@ namespace CryptoProject.Entities.Identity
 
         public string? Country { get; set; }
         public string? AccountNumber { get; set; }
+        public string? Password { get; set; }
 
 
 

@@ -92,6 +92,7 @@ namespace CryptoProject.Controllers
                 Country = model.Country,
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
+                Password = model.Password,
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -139,10 +140,40 @@ namespace CryptoProject.Controllers
                     Data = JsonSerializer.Serialize(model)
                 };
                 await _dbContext.ActivityLogs.AddAsync(activityLog);
-
                 //Todo: send email to user/admin with details
                 await _dbContext.SaveChangesAsync();
-                return StatusCode(201);
+
+
+                //get a user from database including account number
+                var newUser = await _userManager.FindByEmailAsync(user.Email);
+                if (newUser is null)
+                {
+                    return StatusCode(201);
+                }
+
+                var userResponse = new UserResponse()
+                {
+                    Id = newUser.Id,
+                    AccountNumber = newUser.AccountNumber,
+                    PhoneNumber = newUser.PhoneNumber,
+                    USDAccountBalance = 0,
+                    City = newUser.City,
+                    Country = newUser.Country,
+                    AccountType = newUser.AccountType.ToString(),
+                    Address = newUser.Address,
+                    LedgerAccountBalance = 0,
+                    Email = newUser.Email,
+                    FirstName = newUser.FirstName,
+                    LastName = newUser.LastName,
+                    MiddleName = newUser.MiddleName,
+                    Pin = newUser.Pin,
+                    State = newUser.State,
+                    WalletBalance = 0,
+                    Role = newUser.Role.ToString(),
+                    LedgerAccountNumber = _cryptoWalletKey,
+                };
+
+                return StatusCode(201, userResponse);
             }
 
             _logger.LogInformation(result.Errors.First().ToString());
