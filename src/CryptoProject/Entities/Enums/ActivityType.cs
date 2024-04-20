@@ -22,6 +22,8 @@
         UserTransfer,
         UserInitiateTransfer,
         WalletTranfer,
+        UserActivation,
+        UserDeactivation
     }
 
 }

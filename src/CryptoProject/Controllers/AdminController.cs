@@ -126,7 +126,7 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [HttpPost("activate-user/{userId}")]
+        [HttpPut("activate-user/{userId}")]
         public async Task<IActionResult> ActivateUserAccount(Guid userId)
         {
             var user = await _dbContext.Users
@@ -141,6 +141,10 @@ namespace CryptoProject.Controllers
             }
 
             user.IsActive = true;
+
+            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.UserActivation, $"User with email {user.Email} account has been activated");
+            _dbContext.ActivityLogs.Add(logEntry);
+
             await _dbContext.SaveChangesAsync();
 
             var response = new UserResponse()
@@ -170,6 +174,61 @@ namespace CryptoProject.Controllers
             };
 
             return Ok(new { message = "User account activated", response = response });
+        }
+        
+        
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPut("deactivate-user/{userId}")]
+        public async Task<IActionResult> DeactivateUserAccount(Guid userId)
+        {
+            var user = await _dbContext.Users
+                     .Include(x => x.Wallet)
+                .Include(x => x.LedgerAccount)
+                .Include(x => x.USDAccount)
+                .FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user is null)
+            {
+                return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
+            }
+
+            user.IsActive = false;
+
+            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.UserDeactivation, $"User with email {user.Email} account has been deactivated");
+            _dbContext.ActivityLogs.Add(logEntry);
+
+            await _dbContext.SaveChangesAsync();
+
+            var response = new UserResponse()
+            {
+                IsActive = user.IsActive,
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                MiddleName = user.MiddleName,
+                Email = user.Email,
+                UserName = user.UserName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role.ToString(),
+                AccountType = user.AccountType.ToString(),
+                Address = user.Address,
+                City = user.City,
+                State = user.State,
+                WalletId = user.WalletId,
+                WalletBalance = user.Wallet?.Balance,
+                LedgerAccountId = user.LedgerAccountId,
+                LedgerAccountBalance = user.LedgerAccount.Balance,
+                USDAccountId = user.USDAccountId,
+                USDAccountBalance = user.USDAccount.Balance,
+                LedgerAccountNumber = _cryptoWalletKey,
+                Country = user.Country,
+                AccountNumber = user.AccountNumber
+            };
+
+            return Ok(new { message = "User account deactivated", response = response });
         }
 
 
