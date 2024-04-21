@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Polly;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 using System.Net.Mime;
@@ -28,8 +29,6 @@ namespace CryptoProject.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<AuthController> _logger;
         private readonly AppDbContext _dbContext;
-        private readonly string _accessCode = Environment.GetEnvironmentVariable("ACCESS_CODE") ?? string.Empty;
-        private readonly string _cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY") ?? string.Empty;
 
         public AuthController(TokenService tokenService, UserManager<User> userManager, SignInManager<User> signInManager, ILogger<AuthController> logger, AppDbContext dbContext)
         {
@@ -46,9 +45,31 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("verify-code")]
-        public IActionResult VerifyAccessCode([FromBody] string accessCode)
+        public async Task<IActionResult> VerifyAccessCode([FromBody] string accessCode)
         {
-            if (accessCode.Trim() == _accessCode)
+            if (!_dbContext.AccessCodes.Any())
+            {
+                var defaultCode = Environment.GetEnvironmentVariable("ACCESS_CODE") ?? "DEFAULT_CODE";
+                _dbContext.AccessCodes.Add(new AccessCode { Code = defaultCode });
+
+                await _dbContext.SaveChangesAsync();
+            }
+            
+            if (!_dbContext.CryptoWallets.Any())
+            {
+                var cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY");
+                _dbContext.CryptoWallets.Add(new CryptoWallet { Address = cryptoWalletKey });
+
+                await _dbContext.SaveChangesAsync();
+            }
+
+            var accessCodeDb = await _dbContext.AccessCodes.FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(accessCodeDb.Code))
+            {
+                return StatusCode(500,new BaseResponse() { Message = "Access code not found! Please contact administrator", Code = 500, Status = false });
+            }
+
+            if (accessCodeDb.Code == accessCode)
             {
                 _logger.LogInformation("Access granted: {0}", accessCode);
                 return Ok(new { Message = "Access granted", });
@@ -151,6 +172,8 @@ namespace CryptoProject.Controllers
                     return StatusCode(201);
                 }
 
+                var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
+
                 var userResponse = new UserResponse()
                 {
                     Id = newUser.Id,
@@ -170,7 +193,7 @@ namespace CryptoProject.Controllers
                     State = newUser.State,
                     WalletBalance = 0,
                     Role = newUser.Role.ToString(),
-                    LedgerAccountNumber = _cryptoWalletKey,
+                    LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 };
 
                 return StatusCode(201, userResponse);
@@ -215,8 +238,10 @@ namespace CryptoProject.Controllers
                 PhoneNumber = user.PhoneNumber,
                 Role = user.Role.ToString(),
             };
-            var loginResponse = new LoginResponse();
 
+            var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
+
+            var loginResponse = new LoginResponse();
             if (persona.Role == RoleType.Admin.ToString())
             {
                 loginResponse.Id = user.Id;
@@ -231,7 +256,7 @@ namespace CryptoProject.Controllers
                 loginResponse.Address = user.Address;
                 loginResponse.State = user.State;
                 loginResponse.City = user.City;
-                loginResponse.LedgerAccountNumber = _cryptoWalletKey;
+                loginResponse.LedgerAccountNumber = cryptoWallet.Address ?? string.Empty;
             }
             else
             {
@@ -253,7 +278,7 @@ namespace CryptoProject.Controllers
                 loginResponse.LedgerAccountBalance = userAccount?.LedgerAccount?.Balance ?? 0;
                 loginResponse.USDAccountId = userAccount.USDAccountId;
                 loginResponse.USDAccountBalance = userAccount?.USDAccount?.Balance ?? 0;
-                loginResponse.LedgerAccountNumber = _cryptoWalletKey;
+                loginResponse.LedgerAccountNumber = cryptoWallet.Address ?? string.Empty;
                 loginResponse.Pin = userAccount.Pin;
                 loginResponse.Country = userAccount.Country;
                 loginResponse.AccountNumber = userAccount.AccountNumber;
