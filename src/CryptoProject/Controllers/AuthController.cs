@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Polly;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
 using System.Net.Mime;
@@ -28,7 +29,6 @@ namespace CryptoProject.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly ILogger<AuthController> _logger;
         private readonly AppDbContext _dbContext;
-        private readonly string _accessCode = Environment.GetEnvironmentVariable("ACCESS_CODE") ?? string.Empty;
         private readonly string _cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY") ?? string.Empty;
 
         public AuthController(TokenService tokenService, UserManager<User> userManager, SignInManager<User> signInManager, ILogger<AuthController> logger, AppDbContext dbContext)
@@ -46,9 +46,22 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [HttpPost("verify-code")]
-        public IActionResult VerifyAccessCode([FromBody] string accessCode)
+        public async Task<IActionResult> VerifyAccessCode([FromBody] string accessCode)
         {
-            if (accessCode.Trim() == _accessCode)
+            if (!_dbContext.AccessCodes.Any())
+            {
+                var defaultCode = Environment.GetEnvironmentVariable("ACCESS_CODE") ?? "DEFAULT_CODE";
+                _dbContext.AccessCodes.Add(new AccessCode { Code = defaultCode });
+                await _dbContext.SaveChangesAsync();
+            }
+
+            var accessCodeDb = await _dbContext.AccessCodes.FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(accessCodeDb.Code))
+            {
+                return StatusCode(500,new BaseResponse() { Message = "Access code not found! Please contact administrator", Code = 500, Status = false });
+            }
+
+            if (accessCodeDb.Code == accessCode)
             {
                 _logger.LogInformation("Access granted: {0}", accessCode);
                 return Ok(new { Message = "Access granted", });

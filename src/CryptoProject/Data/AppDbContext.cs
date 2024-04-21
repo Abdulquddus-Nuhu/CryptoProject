@@ -19,6 +19,8 @@ namespace CryptoProject.Data
         public DbSet<USDAccount> USDAccounts => Set<USDAccount>();
         public DbSet<LedgerAccount> LedgerAccounts => Set<LedgerAccount>();
         public DbSet<Transaction> Transactions => Set<Transaction>();
+        public DbSet<AccessCode> AccessCodes => Set<AccessCode>();
+        public DbSet<CryptoWallet> CryptoWallets => Set<CryptoWallet>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

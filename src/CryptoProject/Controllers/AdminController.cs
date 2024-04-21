@@ -185,7 +185,7 @@ namespace CryptoProject.Controllers
         public async Task<IActionResult> DeactivateUserAccount(Guid userId)
         {
             var user = await _dbContext.Users
-                     .Include(x => x.Wallet)
+                .Include(x => x.Wallet)
                 .Include(x => x.LedgerAccount)
                 .Include(x => x.USDAccount)
                 .FirstOrDefaultAsync(x => x.Id == userId);
@@ -585,10 +585,9 @@ namespace CryptoProject.Controllers
                 }
             }
 
-
-
             return Ok(new BaseResponse());
 
         }
+
     }
 }
