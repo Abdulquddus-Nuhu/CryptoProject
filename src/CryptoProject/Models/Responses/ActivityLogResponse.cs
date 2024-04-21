@@ -9,6 +9,5 @@
         public string ActivityType { get; set; }
         public DateTime Timestamp { get; set; }
         public string? Details { get; set; } = string.Empty;
-        public string? Data { get; set; }
     }
 }
