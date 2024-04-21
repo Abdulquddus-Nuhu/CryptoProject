@@ -23,7 +23,6 @@ namespace CryptoProject.Controllers
     {
         private readonly AppDbContext _dbContext;
         private readonly ILogger<AdminController> _logger;
-        private readonly string _cryptoWalletKey = Environment.GetEnvironmentVariable("Crptocurrency_API_KEY") ?? string.Empty;
         public AdminController(AppDbContext dbContext, ILogger<AdminController> logger)
         {
             _dbContext = dbContext;
@@ -44,7 +43,9 @@ namespace CryptoProject.Controllers
                 .OrderByDescending(x => x.Created)
                 .ToListAsync();
 
-            //add pagination searching and filtering to this endpoint
+            var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
+
+            //todo: add pagination searching and filtering to this endpoint
             var response = users.Select(x => new UserResponse()
             {
                 IsActive = x.IsActive,
@@ -66,7 +67,7 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = x.LedgerAccount.Balance,
                 USDAccountId = x.USDAccountId,
                 USDAccountBalance = x.USDAccount.Balance,
-                LedgerAccountNumber = _cryptoWalletKey,
+                LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Pin = x.Pin,
                 Country = x.Country,
                 AccountNumber = x.AccountNumber
@@ -93,6 +94,9 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse() { Status = false, Message = "User not found", Code = 400 });
             }
 
+            var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
+
+
             var response = new UserResponse()
             {
                 IsActive = user.IsActive,
@@ -114,7 +118,7 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = user.LedgerAccount.Balance,
                 USDAccountId = user.USDAccountId,
                 USDAccountBalance = user.USDAccount.Balance,
-                LedgerAccountNumber = _cryptoWalletKey,
+                LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
                 AccountNumber = user.AccountNumber
             };
@@ -147,6 +151,7 @@ namespace CryptoProject.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
             var response = new UserResponse()
             {
                 IsActive = user.IsActive,
@@ -168,7 +173,7 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = user.LedgerAccount.Balance,
                 USDAccountId = user.USDAccountId,
                 USDAccountBalance = user.USDAccount.Balance,
-                LedgerAccountNumber = _cryptoWalletKey,
+                LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
                 AccountNumber = user.AccountNumber
             };
@@ -202,6 +207,7 @@ namespace CryptoProject.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
             var response = new UserResponse()
             {
                 IsActive = user.IsActive,
@@ -223,7 +229,7 @@ namespace CryptoProject.Controllers
                 LedgerAccountBalance = user.LedgerAccount.Balance,
                 USDAccountId = user.USDAccountId,
                 USDAccountBalance = user.USDAccount.Balance,
-                LedgerAccountNumber = _cryptoWalletKey,
+                LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
                 AccountNumber = user.AccountNumber
             };
@@ -609,6 +615,31 @@ namespace CryptoProject.Controllers
             accessCode.Code = request.NewAccessCode;
 
             _dbContext.AccessCodes.Update(accessCode);
+            _dbContext.SaveChanges();
+
+            return Ok(new BaseResponse());
+        }
+
+        //endpoint to be able to edit CryptoWallet in the databse        //endpoint to be able to edit CryptoWallet in the databse
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [SwaggerOperation(
+         Summary = "Edit CryptoWallet",
+         Description = "Edit CryptoWallet entity in the database")]
+        [HttpPut("edit-crypto-wallet")]
+        public async Task<IActionResult> EditCryptoWallet([FromBody] EditCryptoWalletRequest request)
+        {
+            var cryptoWallet = _dbContext.CryptoWallets.FirstOrDefault();
+            if (cryptoWallet is null)
+            {
+                return BadRequest(new BaseResponse() { Status = false, Message = "CryptoWallet not found", Code = 400 });
+            }
+
+            cryptoWallet.Address = request.Address;
+
+            _dbContext.CryptoWallets.Update(cryptoWallet);
             _dbContext.SaveChanges();
 
             return Ok(new BaseResponse());
