@@ -326,7 +326,7 @@ namespace CryptoProject.Controllers
             }
 
             _logger.LogInformation("User with email {0} tried to login but password is invalid", request.Email);
-            return Unauthorized(new BaseResponse() { Message = "Invalid Password", Status = false, Code = 401});
+            return BadRequest(new BaseResponse() { Message = "Invalid Password", Status = false, Code = 400});
         }
 
 

@@ -1,4 +1,5 @@
 ﻿using CryptoProject.Data;
+using CryptoProject.Entities;
 using CryptoProject.Entities.Enums;
 using CryptoProject.Entities.Identity;
 using CryptoProject.Models.Requests;
@@ -146,9 +147,14 @@ namespace CryptoProject.Controllers
 
             user.IsActive = true;
 
-            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.UserActivation, $"User with email {user.Email} account has been activated");
+            var logEntry = new ActivityLog
+            {
+                UserEmail = User.Identity.Name ?? string.Empty,
+                ActivityType = ActivityType.UserDeactivation,
+                Timestamp = DateTime.UtcNow,
+                Details = $"User with email {user.Email} account is activated",
+            };
             _dbContext.ActivityLogs.Add(logEntry);
-
             await _dbContext.SaveChangesAsync();
 
             var cryptoWallet = await _dbContext.CryptoWallets.FirstOrDefaultAsync();
@@ -202,7 +208,13 @@ namespace CryptoProject.Controllers
 
             user.IsActive = false;
 
-            var logEntry = ActivityLogService.CreateLogEntry(null, userEmail: User.Identity.Name, ActivityType.UserDeactivation, $"User with email {user.Email} account has been deactivated");
+            var logEntry = new ActivityLog
+            {
+                UserEmail = User.Identity.Name ?? string.Empty,
+                ActivityType = ActivityType.UserDeactivation,
+                Timestamp = DateTime.UtcNow,
+                Details = $"User with email {user.Email} account is deactivated",
+            };
             _dbContext.ActivityLogs.Add(logEntry);
 
             await _dbContext.SaveChangesAsync();
