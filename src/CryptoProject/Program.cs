@@ -169,17 +169,18 @@ try
     //    options.Filters.Add(new AuthorizeFilter(policy));
     //});
 
-    //builder.Services.AddCors(options =>
-    //{
-    //    options.AddPolicy(name: "MyAllowSpecificOrigins",
-    //                      builder =>
-    //                      {
-    //                          builder
-    //                                 .AllowAnyOrigin()
-    //                                 .AllowAnyHeader()
-    //                                 .AllowAnyMethod();
-    //                      });
-    //});
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(name: "MyAllowSpecificOrigins",
+                          builder =>
+                          {
+                              builder
+                              .WithOrigins("https://localhost:3000","http://localhost:3000",
+                                "https://www.bps-ca.com", "http://www.bps-ca.com")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                          });
+    });
 
 
     //Swagger Authentication/Authorization
@@ -251,7 +252,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    //app.UseCors("MyAllowSpecificOrigins");
+    app.UseCors("MyAllowSpecificOrigins");
 
 
     app.MapControllers();
