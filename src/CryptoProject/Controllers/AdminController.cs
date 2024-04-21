@@ -589,5 +589,29 @@ namespace CryptoProject.Controllers
 
         }
 
+
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [SwaggerOperation(
+         Summary = "Edit AccessCode",
+         Description = "Edit AccessCode entity in the database")]
+        [HttpPut("edit-access-code")]
+        public async Task<IActionResult> EditAccessCode([FromBody] EditAccessCodeRequest request)
+        {
+            var accessCode = _dbContext.AccessCodes.FirstOrDefault();
+            if (accessCode is null)
+            {
+                return BadRequest(new BaseResponse() { Status = false, Message = "AccessCode not found", Code = 400 });
+            }
+
+            accessCode.Code = request.NewAccessCode;
+
+            _dbContext.AccessCodes.Update(accessCode);
+            _dbContext.SaveChanges();
+
+            return Ok(new BaseResponse());
+        }
     }
 }
