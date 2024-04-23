@@ -337,9 +337,44 @@ namespace CryptoProject.Controllers
                 uSDAccount.Balance += transaction.Amount;
 
 
-                //if (transaction.Type == TransactionType.Transfer)
-                //{
-                //}
+                if (transaction.Type == TransactionType.WalletTranfer)
+                {
+                    switch (transaction.ToWalletType)
+                    {
+                        case WalletType.USD:
+                            var receiverUSD = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverUSD is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's USD-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverUSD.Balance -= transaction.Amount;
+                            _dbContext.USDAccounts.Update(receiverUSD);
+                            break;
+
+                        case WalletType.LedgerAccount:
+                            var receiverLedger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverLedger is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Ledger-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverLedger.Balance -= transaction.Amount;
+                            _dbContext.LedgerAccounts.Update(receiverLedger);
+                            break;
+
+                        case WalletType.WalletAccount:
+                            var receiverWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverWallet is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Wallet-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverWallet.Balance -= transaction.Amount;
+                            _dbContext.Wallets.Update(receiverWallet);
+                            break;
+                    }
+                }
 
             }
             else if (transaction.WalletType is WalletType.LedgerAccount)
@@ -353,9 +388,45 @@ namespace CryptoProject.Controllers
                 ledger.Balance += transaction.Amount;
 
 
-                //if (transaction.Type == TransactionType.Transfer)
-                //{
-                //}
+                if (transaction.Type == TransactionType.WalletTranfer)
+                {
+                    switch (transaction.ToWalletType)
+                    {
+                        case WalletType.USD:
+                            var receiverUSD = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverUSD is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's USD-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverUSD.Balance -= transaction.Amount;
+                            _dbContext.USDAccounts.Update(receiverUSD);
+                            break;
+
+                        case WalletType.LedgerAccount:
+                            var receiverLedger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverLedger is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Ledger-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverLedger.Balance -= transaction.Amount;
+                            _dbContext.LedgerAccounts.Update(receiverLedger);
+                            break;
+
+                        case WalletType.WalletAccount:
+                            var receiverWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverWallet is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Wallet-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverWallet.Balance -= transaction.Amount;
+                            _dbContext.Wallets.Update(receiverWallet);
+                            break;
+                    }
+                }
+
             }
             else if (transaction.WalletType is WalletType.WalletAccount)
             {
@@ -368,10 +439,45 @@ namespace CryptoProject.Controllers
                 wallet.Balance += transaction.Amount;
 
 
-                //if (transaction.Type == TransactionType.Transfer)
-                //{
-                //    wallet.Balance += transaction.Amount;
-                //}
+                if (transaction.Type == TransactionType.WalletTranfer)
+                {
+                    switch (transaction.ToWalletType)
+                    {
+                        case WalletType.USD:
+                            var receiverUSD = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverUSD is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's USD-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverUSD.Balance -= transaction.Amount;
+                            _dbContext.USDAccounts.Update(receiverUSD);
+                            break;
+
+                        case WalletType.LedgerAccount:
+                            var receiverLedger = _dbContext.LedgerAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverLedger is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Ledger-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverLedger.Balance -= transaction.Amount;
+                            _dbContext.LedgerAccounts.Update(receiverLedger);
+                            break;
+
+                        case WalletType.WalletAccount:
+                            var receiverWallet = _dbContext.Wallets.FirstOrDefault(w => w.UserId == transaction.SenderId);
+                            if (receiverWallet is null)
+                            {
+                                return BadRequest(new BaseResponse() { Message = "Receiver's Wallet-Account not found", Status = false, Code = 400 });
+                            }
+
+                            receiverWallet.Balance -= transaction.Amount;
+                            _dbContext.Wallets.Update(receiverWallet);
+                            break;
+                    }
+                }
+
             }
 
             transaction.Status = TransactionStatus.Reversed;

@@ -668,7 +668,8 @@ namespace CryptoProject.Controllers
                 Status = TransactionStatus.Successful,
                 Type = TransactionType.WalletTranfer,
                 Timestamp = DateTime.UtcNow,
-                WalletType = request.FromWalletType
+                WalletType = request.FromWalletType,
+                ToWalletType = request.ToWalletType
             };
             await _dbContext.Transactions.AddAsync(transaction);
 
