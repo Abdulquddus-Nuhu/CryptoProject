@@ -320,7 +320,7 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
-            if (transaction.Status is TransactionStatus.Reverted)
+            if (transaction.Status is TransactionStatus.Reversed)
             {
                 return BadRequest(new BaseResponse() { Message = "Transaction status is already reverted", Status = false, Code = 400 });
             }
@@ -374,7 +374,7 @@ namespace CryptoProject.Controllers
                 //}
             }
 
-            transaction.Status = TransactionStatus.Reverted;
+            transaction.Status = TransactionStatus.Reversed;
             transaction.Modified = DateTime.UtcNow;
 
             _dbContext.Transactions.Update(transaction);
