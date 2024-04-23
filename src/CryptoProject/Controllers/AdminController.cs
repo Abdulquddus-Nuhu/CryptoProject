@@ -326,7 +326,7 @@ namespace CryptoProject.Controllers
             }
 
 
-            if (transaction.WalletType is WalletType.UsdAccount)
+            if (transaction.WalletType is WalletType.USD)
             {
                 var uSDAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
                 if (uSDAccount is null)
@@ -425,7 +425,7 @@ namespace CryptoProject.Controllers
             }
 
 
-            if (request.WalletType is WalletType.UsdAccount)
+            if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
                 if (usdAccount is null)
@@ -548,7 +548,7 @@ namespace CryptoProject.Controllers
 
                 }
             }
-            else if (request.WalletType is WalletType.UsdAccount)
+            else if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
                 if (usdAccount is null)
