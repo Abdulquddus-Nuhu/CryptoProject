@@ -123,7 +123,7 @@ namespace CryptoProject.Controllers
                 LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
                 AccountNumber = user.AccountNumber,
-                Password = x.Password
+                Password = user.Password
             };
 
             return Ok(response);
