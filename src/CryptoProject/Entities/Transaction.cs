@@ -20,5 +20,6 @@ namespace CryptoProject.Entities
         public User? Sender { get; set; } 
         public User? Receiver { get; set; }
         public WalletType WalletType { get; set; }
+        public WalletType? ToWalletType { get; set; }
     }
 }
