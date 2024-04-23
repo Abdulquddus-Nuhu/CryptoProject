@@ -2,7 +2,7 @@
 {
     public enum WalletType
     {
-        UsdAccount,
+        USD,
         LedgerAccount,
         WalletAccount,
     }

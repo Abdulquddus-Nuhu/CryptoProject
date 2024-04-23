@@ -73,7 +73,7 @@ namespace CryptoProject.Controllers
                 }
                 response.Balance = ledgerAccount.Balance;
             }
-            else if (request.WalletType is WalletType.UsdAccount)
+            else if (request.WalletType is WalletType.USD)
             {
                 var uSDAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (uSDAccount is null)
@@ -196,7 +196,7 @@ namespace CryptoProject.Controllers
             }
 
 
-            if (request.WalletType is WalletType.UsdAccount)
+            if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (usdAccount is null)
@@ -330,7 +330,7 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
             }
 
-            if (request.WalletType is WalletType.UsdAccount)
+            if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (usdAccount is null)
@@ -464,7 +464,7 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
             }
 
-            if (request.WalletType is WalletType.UsdAccount)
+            if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                 if (usdAccount is null)
@@ -615,7 +615,7 @@ namespace CryptoProject.Controllers
                     fromAccountBalance = fromLedger.Balance;
                     break;
 
-                case WalletType.UsdAccount:
+                case WalletType.USD:
                     var fromUsdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                     if (fromUsdAccount == null || fromUsdAccount.Balance < request.Amount)
                         return BadRequest(new BaseResponse { Message = "Insufficient balance or USD account not found", Code = 400, Status = false });
@@ -646,7 +646,7 @@ namespace CryptoProject.Controllers
                     toAccountBalance = toLedger.Balance;
                     break;
 
-                case WalletType.UsdAccount:
+                case WalletType.USD:
                     var toUsdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
                     if (toUsdAccount == null)
                         return BadRequest(new BaseResponse { Message = "Target USD account not found", Code = 400, Status = false });

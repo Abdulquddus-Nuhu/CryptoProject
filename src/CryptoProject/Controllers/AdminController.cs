@@ -320,13 +320,13 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
-            if (transaction.Status is TransactionStatus.Reverted)
+            if (transaction.Status is TransactionStatus.Reversed)
             {
                 return BadRequest(new BaseResponse() { Message = "Transaction status is already reverted", Status = false, Code = 400 });
             }
 
 
-            if (transaction.WalletType is WalletType.UsdAccount)
+            if (transaction.WalletType is WalletType.USD)
             {
                 var uSDAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == transaction.SenderId);
                 if (uSDAccount is null)
@@ -374,7 +374,7 @@ namespace CryptoProject.Controllers
                 //}
             }
 
-            transaction.Status = TransactionStatus.Reverted;
+            transaction.Status = TransactionStatus.Reversed;
             transaction.Modified = DateTime.UtcNow;
 
             _dbContext.Transactions.Update(transaction);
@@ -425,7 +425,7 @@ namespace CryptoProject.Controllers
             }
 
 
-            if (request.WalletType is WalletType.UsdAccount)
+            if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
                 if (usdAccount is null)
@@ -548,7 +548,7 @@ namespace CryptoProject.Controllers
 
                 }
             }
-            else if (request.WalletType is WalletType.UsdAccount)
+            else if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = _dbContext.USDAccounts.FirstOrDefault(w => w.UserId == request.UserId);
                 if (usdAccount is null)
