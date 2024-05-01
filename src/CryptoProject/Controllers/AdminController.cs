@@ -320,7 +320,7 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse() { Message = "Transaction not found", Status = false, Code = 400 });
             }
 
-            if (transaction.Status is TransactionStatus.Reversed)
+            if (transaction.Status is TransactionStatus.AutoReversed)
             {
                 return BadRequest(new BaseResponse() { Message = "Transaction status is already reverted", Status = false, Code = 400 });
             }
@@ -480,7 +480,7 @@ namespace CryptoProject.Controllers
 
             }
 
-            transaction.Status = TransactionStatus.Reversed;
+            transaction.Status = TransactionStatus.AutoReversed;
             transaction.Modified = DateTime.UtcNow;
 
             _dbContext.Transactions.Update(transaction);
@@ -754,12 +754,58 @@ namespace CryptoProject.Controllers
             var cryptoWallet = _dbContext.CryptoWallets.FirstOrDefault();
             if (cryptoWallet is null)
             {
-                return BadRequest(new BaseResponse() { Status = false, Message = "CryptoWallet not found", Code = 400 });
+                return StatusCode(404, new BaseResponse() { Status = false, Message = "CryptoWallet not found", Code = 404 });
             }
 
             cryptoWallet.Address = request.Address;
 
             _dbContext.CryptoWallets.Update(cryptoWallet);
+            _dbContext.SaveChanges();
+
+            return Ok(new BaseResponse());
+        }
+
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [SwaggerOperation(
+         Summary = "Disable User From Perfoming Transactoin")]
+        [HttpPut("disable-transfer")]
+        public async Task<IActionResult> DisableUserTransaction(Guid userId)
+        {
+            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user is null)
+            {
+                return NotFound(new BaseResponse() { Status = false, Message = "User not found", Code = 404 });
+            }
+
+            user.CanTransact = false;
+
+            _dbContext.Users.Update(user);
+            _dbContext.SaveChanges();
+
+            return Ok(new BaseResponse());
+        }
+        
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [SwaggerOperation(
+         Summary = "Enable User To Perfome Transactoin")]
+        [HttpPut("enable-transfer")]
+        public async Task<IActionResult> EnableUserTransaction(Guid userId)
+        {
+            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user is null)
+            {
+                return NotFound(new BaseResponse() { Status = false, Message = "User not found", Code = 404 });
+            }
+
+            user.CanTransact = true;
+
+            _dbContext.Users.Update(user);
             _dbContext.SaveChanges();
 
             return Ok(new BaseResponse());
