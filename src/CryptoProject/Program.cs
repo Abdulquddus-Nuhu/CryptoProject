@@ -1,5 +1,6 @@
 using CryptoProject.Data;
 using CryptoProject.Entities.Identity;
+using CryptoProject.Middlewares;
 using CryptoProject.SeedDatabase;
 using CryptoProject.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -240,6 +241,11 @@ try
 
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    //security
+    app.UseMiddleware<UserAgentValidationMiddleware>();
+    app.UseMiddleware<NotFoundRequestTrackingMiddleware>();
+
 
     app.UseHsts();
     app.UseHttpsRedirection();
