@@ -330,6 +330,53 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
             }
 
+            if (user.CanTransact is false)
+            {
+                var transaction1 = new Transaction()
+                {
+                    Id = Guid.NewGuid(),
+                    Amount = request.Amount,
+                    SenderId = request.UserId,
+                    ReceiverWalletAddress = request.ReceiverWalletAddress,
+                    Details = request.Details,
+                    Status = TransactionStatus.AutoReversed,
+                    Type = TransactionType.WireTransfer,
+                    Timestamp = DateTime.UtcNow,
+                    WalletType = request.WalletType,
+                };
+                await _dbContext.Transactions.AddAsync(transaction1);
+
+
+                var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress} but transaction was auto-reversed");
+                _dbContext.ActivityLogs.Add(logEntry);
+
+                var result1 = await _dbContext.TrySaveChangesAsync();
+                if (result1)
+                {
+                    var response = new TransactionResponse()
+                    {
+                        Id = transaction1.Id,
+                        Amount = transaction1.Amount,
+                        Timestamp = transaction1.Timestamp,
+                        Status = transaction1.Status.ToString(),
+                        Type = transaction1.Type.ToString(),
+                        SenderId = transaction1.SenderId,
+                        Sender = user.FullName,
+                        SenderEmail = user.Email,
+                        ReceiverWalletAddress = transaction1.ReceiverWalletAddress,
+                        Details = transaction1.Details,
+                        WalletType = transaction1.WalletType.ToString(),
+                    };
+
+                    //Todo: send email to admin with details
+                    return Ok(response);
+                }
+                else
+                {
+                    return StatusCode(500, new BaseResponse { Message = "Unable to process transfer please try again later or contact administrator", Status = false });
+                }
+            }
+
             if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
@@ -464,6 +511,55 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
             }
 
+            if (user.CanTransact is false)
+            {
+                var transaction1 = new Transaction()
+                {
+                    Id = Guid.NewGuid(),
+                    Amount = request.Amount,
+                    SenderId = request.UserId,
+                    ReceiverWalletAddress = request.ReceiverWalletAddress,
+                    Details = request.Details,
+                    Status = TransactionStatus.AutoReversed,
+                    Type = TransactionType.BitcoinTransfer,
+                    Timestamp = DateTime.UtcNow,
+                    WalletType = request.WalletType,
+                    CoinType = request.CoinType,
+                };
+                await _dbContext.Transactions.AddAsync(transaction1);
+
+
+                var logEntry1 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserTransfer, $"User with email {user.Email} transfered {request.Amount} to {request.ReceiverWalletAddress} from his USD-Account but transaction was auto-reversed");
+                _dbContext.ActivityLogs.Add(logEntry1);
+
+                var result1 = await _dbContext.TrySaveChangesAsync();
+                if (result1)
+                {
+                    var response = new BitcoinTransferResponse()
+                    {
+                        Id = transaction1.Id,
+                        Amount = transaction1.Amount,
+                        Timestamp = transaction1.Timestamp,
+                        Status = transaction1.Status.ToString(),
+                        Type = transaction1.Type.ToString(),
+                        SenderId = transaction1.SenderId,
+                        Sender = user.FullName,
+                        SenderEmail = user.Email,
+                        ReceiverWalletAddress = transaction1.ReceiverWalletAddress,
+                        Details = transaction1.Details,
+                        WalletType = transaction1.WalletType.ToString(),
+                        CoinType = transaction1.CoinType,
+                    };
+
+                    //Todo: send email to admin with details
+                    return Ok(response);
+                }
+                else
+                {
+                    return StatusCode(500, new BaseResponse { Message = "Unable to process transfer please try again later or contact administrator", Status = false });
+                }
+            }
+
             if (request.WalletType is WalletType.USD)
             {
                 var usdAccount = await _dbContext.USDAccounts.FirstOrDefaultAsync(u => u.UserId == request.UserId);
@@ -592,6 +688,35 @@ namespace CryptoProject.Controllers
             if (user.Pin != request.Pin)
                 return BadRequest(new BaseResponse { Message = "Incorrect pin", Code = 400, Status = false });
 
+            if (user.CanTransact is false)
+            {
+                var transaction1 = new Transaction
+                {
+                    Id = Guid.NewGuid(),
+                    Amount = request.Amount,
+                    SenderId = request.UserId,
+                    ReceiverWalletAddress = "N/A",
+                    Details = $"Top-up wallet '{request.ToWalletType.ToString()}' with {request.Amount} from wallet '{request.FromWalletType.ToString()}' ",
+                    Status = TransactionStatus.AutoReversed,
+                    Type = TransactionType.WalletTranfer,
+                    Timestamp = DateTime.UtcNow,
+                    WalletType = request.FromWalletType,
+                    ToWalletType = request.ToWalletType
+                };
+                await _dbContext.Transactions.AddAsync(transaction1);
+
+                // Log activity and save changes
+                var logEntry1 = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.WalletTranfer, $"Transferred {request.Amount} from {request.FromWalletType.ToString()} to {request.ToWalletType.ToString()}, but the transaction was auto-reversed.");
+                _dbContext.ActivityLogs.Add(logEntry1);
+
+                var result1 = await _dbContext.TrySaveChangesAsync();
+                if (!result1)
+                    return StatusCode(500, new BaseResponse { Message = "Unable to process transfer. Please try again later or contact support.", Status = false });
+
+                return Ok(new { Message = "Transfer completed successfully.", response = request });
+            }
+
+
             // Direct account retrieval and update
             decimal fromAccountBalance = 0;
             decimal toAccountBalance = 0;
@@ -711,7 +836,6 @@ namespace CryptoProject.Controllers
 
             transactions = await _dbContext.Transactions
                 .Include(t => t.Sender)
-                //.Include(t => t.Receiver)
                 .Where(t => t.SenderId == userId)
                 .ToListAsync();
 
