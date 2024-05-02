@@ -146,14 +146,14 @@ namespace CryptoProject.Controllers
                 return BadRequest(new BaseResponse { Message = "User not found", Code = 400, Status = false });
             }
 
-            string otp = _otpGenerator.Generate(user.Email, 2, 6);
+            string otp = _otpGenerator.Generate(user.Email, 5, 6);
             _logger.LogInformation("User with id: {0} requested otp: {1}",request.UserId,otp);
 
             string subject = "Transfer OTP";
-            string message = $"Your OTP is {otp} valid for 2 minutes";
-            List<string> receivers = [user.Email];
+            string message = $"Your OTP is {otp} valid for 5 minutes";
+            //List<string> receivers = [user.Email];
 
-            _emailService.SendEmail(receivers, subject, message, "abdulquddusnuhu@gmail.com");
+            //_emailService.SendEmail(receivers, subject, message, "abdulquddusnuhu@gmail.com");
 
             var logEntry = ActivityLogService.CreateLogEntry(request.UserId, userEmail: User.Identity.Name, ActivityType.UserInitiateTransfer, $"User with email {user.Email} initiated a transfer");
             _dbContext.ActivityLogs.Add(logEntry);
