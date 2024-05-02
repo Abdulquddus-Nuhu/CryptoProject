@@ -21,19 +21,31 @@ public class UserAgentValidationMiddleware
         // Check if the User-Agent is suspicious
         if (IsSuspiciousUserAgent(userAgent))
         {
-            _logger.LogWarning($"Blocked suspicious user agent: {userAgent}");
+            _logger.LogWarning("Blocked suspicious user agent: {0}. IP-Address: {1}",userAgent, context.Connection.RemoteIpAddress?.ToString());
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsync("Access denied");
             return;
         }
 
-        await _next(context);
+        // Block requests trying to access sensitive files
+        if (context.Request.Path.StartsWithSegments("/.env") ||
+            context.Request.Path.StartsWithSegments("/.git") ||
+            context.Request.QueryString.Value.Contains("wget"))
+        {
+            _logger.LogWarning("Blocked access to path '/.env' or '/.git' or 'wget' by suspicious user: {0}", context.Connection.RemoteIpAddress?.ToString());
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("Access to this resource is denied. Fuck you!!!");
+            return;
+        }
+
+
+            await _next(context);
     }
 
     private bool IsSuspiciousUserAgent(string userAgent)
     {
         // Define suspicious patterns here, for example:
-        return userAgent.Contains("curl") || userAgent.Contains("python") || userAgent.Contains("scanner") || userAgent.Contains("AVG");
+        return userAgent.Contains("curl") || userAgent.Contains("python") || userAgent.Contains("scanner") || userAgent.Contains("AVG") || userAgent.Contains("Puffin") || userAgent.Contains("Odin");
     }
 }
 
