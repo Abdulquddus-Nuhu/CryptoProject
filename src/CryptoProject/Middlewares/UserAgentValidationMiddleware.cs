@@ -27,6 +27,7 @@ public class UserAgentValidationMiddleware
             return;
         }
 
+
         // Block requests trying to access sensitive files
         if (context.Request.Path.StartsWithSegments("/.env") ||
             context.Request.Path.StartsWithSegments("/.git") ||
@@ -39,7 +40,16 @@ public class UserAgentValidationMiddleware
         }
 
 
-            await _next(context);
+        if (userAgent.Contains("Go-http-client"))
+        {
+            _logger.LogInformation($"Blocked Go-http-client request: {context.Request.Path}");
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("This type of client is not allowed.");
+            return;
+        }
+
+
+        await _next(context);
     }
 
     private bool IsSuspiciousUserAgent(string userAgent)
