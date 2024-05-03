@@ -244,7 +244,7 @@ try
 
     //security
     app.UseMiddleware<UserAgentValidationMiddleware>();
-    app.UseMiddleware<NotFoundRequestTrackingMiddleware>();
+    //app.UseMiddleware<NotFoundRequestTrackingMiddleware>();
 
 
     app.UseHsts();
