@@ -10,12 +10,14 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
 using System.Text;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 Log.Information($"Starting up Crypto Web Server!");
@@ -229,6 +231,16 @@ try
     builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
 
 
+    builder.Services.AddRateLimiter(_ => _
+    .AddFixedWindowLimiter(policyName: "fixed", options =>
+    {
+        options.PermitLimit = 4; // Maximum requests allowed
+        options.Window = TimeSpan.FromSeconds(12); // Time window duration
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 2; // Maximum queued requests
+    }));
+
+
 
     var app = builder.Build();
 
@@ -239,6 +251,7 @@ try
         app.UseSwaggerUI();
     }
 
+    app.UseRateLimiter();
 
     //security
     app.UseMiddleware<UserAgentValidationMiddleware>();
