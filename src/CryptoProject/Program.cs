@@ -251,6 +251,7 @@ try
         app.UseSwaggerUI();
     }
 
+    app.UseRateLimiter();
 
     //security
     app.UseMiddleware<UserAgentValidationMiddleware>();
