@@ -25,7 +25,8 @@ namespace CryptoProject.SeedDatabase
                     UserName = superAdminEmail,
                     EmailConfirmed = true,
                     PhoneNumberConfirmed = true,
-                    Role = RoleType.SuperAdmin
+                    Role = RoleType.SuperAdmin,
+                    IsActive = true
                 };
                 var result = await userManager.CreateAsync(superAdmin, Environment.GetEnvironmentVariable("ROOT_DEFAULT_PASSWORD"));
                 if (result.Succeeded)
@@ -48,7 +49,8 @@ namespace CryptoProject.SeedDatabase
                     UserName = Admin,
                     EmailConfirmed = true,
                     PhoneNumberConfirmed = true,
-                    Role = RoleType.Admin
+                    Role = RoleType.Admin,
+                    IsActive = true
                 };
                 var result = await userManager.CreateAsync(admin, Environment.GetEnvironmentVariable("ADMIN_PASSWORD"));
                 if (result.Succeeded)
