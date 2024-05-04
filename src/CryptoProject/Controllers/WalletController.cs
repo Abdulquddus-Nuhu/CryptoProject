@@ -18,7 +18,7 @@ namespace CryptoProject.Controllers
 {
     //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [EnableRateLimiting("fixed")]
-    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Client)]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     [Route("api/[controller]")]
     [ApiController]
     public class WalletController : ControllerBase
