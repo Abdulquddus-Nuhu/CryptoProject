@@ -12,15 +12,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CryptoProject.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240415235538_init")]
-    partial class init
+    [Migration("20240504093142_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("public")
                 .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -28,6 +27,43 @@ namespace CryptoProject.Migrations
 
             modelBuilder.HasSequence<int>("AccountNumberSeq", "public")
                 .StartsAt(2000753554L);
+
+            modelBuilder.Entity("CryptoProject.Entities.AccessCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("Deleted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("Modified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AccessCodes");
+                });
 
             modelBuilder.Entity("CryptoProject.Entities.ActivityLog", b =>
                 {
@@ -79,7 +115,43 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ActivityLogs", "public");
+                    b.ToTable("ActivityLogs");
+                });
+
+            modelBuilder.Entity("CryptoProject.Entities.CryptoWallet", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("Deleted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("Modified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CryptoWallets");
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.Identity.Role", b =>
@@ -106,7 +178,7 @@ namespace CryptoProject.Migrations
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles", "public");
+                    b.ToTable("AspNetRoles", (string)null);
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.Identity.User", b =>
@@ -128,6 +200,9 @@ namespace CryptoProject.Migrations
 
                     b.Property<string>("Address")
                         .HasColumnType("text");
+
+                    b.Property<bool>("CanTransact")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("City")
                         .HasColumnType("text");
@@ -198,6 +273,9 @@ namespace CryptoProject.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<string>("Password")
+                        .HasColumnType("text");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
@@ -245,7 +323,7 @@ namespace CryptoProject.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers", "public");
+                    b.ToTable("AspNetUsers", (string)null);
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.LedgerAccount", b =>
@@ -286,7 +364,7 @@ namespace CryptoProject.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("LedgerAccounts", "public");
+                    b.ToTable("LedgerAccounts");
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.Transaction", b =>
@@ -340,6 +418,9 @@ namespace CryptoProject.Migrations
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("ToWalletType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -352,7 +433,7 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Transactions", "public");
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.USDAccount", b =>
@@ -393,7 +474,7 @@ namespace CryptoProject.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("USDAccounts", "public");
+                    b.ToTable("USDAccounts");
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.Wallet", b =>
@@ -434,7 +515,7 @@ namespace CryptoProject.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Wallets", "public");
+                    b.ToTable("Wallets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -458,7 +539,7 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", "public");
+                    b.ToTable("AspNetRoleClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -482,7 +563,7 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", "public");
+                    b.ToTable("AspNetUserClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -503,7 +584,7 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", "public");
+                    b.ToTable("AspNetUserLogins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
@@ -518,7 +599,7 @@ namespace CryptoProject.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", "public");
+                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -537,7 +618,7 @@ namespace CryptoProject.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", "public");
+                    b.ToTable("AspNetUserTokens", (string)null);
                 });
 
             modelBuilder.Entity("CryptoProject.Entities.ActivityLog", b =>

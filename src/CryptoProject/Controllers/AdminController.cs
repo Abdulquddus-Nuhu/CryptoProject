@@ -72,7 +72,8 @@ namespace CryptoProject.Controllers
                 Pin = x.Pin,
                 Country = x.Country,
                 AccountNumber = x.AccountNumber,
-                Password = x.Password
+                Password = x.Password,
+                CanTransact = x.CanTransact
             });
 
             return Ok(response);
@@ -123,7 +124,8 @@ namespace CryptoProject.Controllers
                 LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
                 AccountNumber = user.AccountNumber,
-                Password = user.Password
+                Password = user.Password,
+                CanTransact = user.CanTransact
             };
 
             return Ok(response);
@@ -183,7 +185,8 @@ namespace CryptoProject.Controllers
                 USDAccountBalance = user.USDAccount.Balance,
                 LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
-                AccountNumber = user.AccountNumber
+                AccountNumber = user.AccountNumber,
+                CanTransact = user.CanTransact
             };
 
             return Ok(new { message = "User account activated", response = response });
@@ -245,7 +248,8 @@ namespace CryptoProject.Controllers
                 USDAccountBalance = user.USDAccount.Balance,
                 LedgerAccountNumber = cryptoWallet.Address ?? string.Empty,
                 Country = user.Country,
-                AccountNumber = user.AccountNumber
+                AccountNumber = user.AccountNumber,
+                CanTransact = user.CanTransact
             };
 
             return Ok(new { message = "User account deactivated", response = response });

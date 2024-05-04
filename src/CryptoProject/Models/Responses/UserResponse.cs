@@ -36,6 +36,8 @@ namespace CryptoProject.Models.Responses
         public string AccountNumber { get; set; }
         public bool IsActive { get; set; }
         public string Password { get; set; }
+        public bool CanTransact { get; set; } 
+
     }
 
 }
