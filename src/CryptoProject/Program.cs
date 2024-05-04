@@ -240,7 +240,7 @@ try
         options.QueueLimit = 2; // Maximum queued requests
     }));
 
-
+    builder.Services.AddResponseCaching();
 
     var app = builder.Build();
 
@@ -252,6 +252,7 @@ try
     }
 
     app.UseRateLimiter();
+    app.UseResponseCaching();
 
     //security
     app.UseMiddleware<UserAgentValidationMiddleware>();

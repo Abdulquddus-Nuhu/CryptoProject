@@ -18,6 +18,7 @@ namespace CryptoProject.Controllers
 {
     //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [EnableRateLimiting("fixed")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Client)]
     [Route("api/[controller]")]
     [ApiController]
     public class WalletController : ControllerBase
@@ -46,7 +47,6 @@ namespace CryptoProject.Controllers
         //OperationId = "auth.login",
         //Tags = new[] { "AuthEndpoints" })
         ]
-        [ResponseCache(Duration = 60)]
         [HttpGet("get-balance")]
         public async Task<ActionResult> GetWalletBalance(GetBalanceRequest request)
         {
@@ -819,7 +819,6 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(IEnumerable<TransactionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [ResponseCache(Duration = 60)]
         [HttpGet("get-transactions")]
         public async Task<IActionResult> GetAllTransactions(Guid userId)
         {
