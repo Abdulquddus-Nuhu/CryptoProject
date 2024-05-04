@@ -20,6 +20,7 @@ namespace CryptoProject.Controllers
     //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     //[Authorize(Roles = nameof(RoleType.Admin))]
     [EnableRateLimiting("fixed")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminController : ControllerBase
@@ -36,7 +37,6 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [ResponseCache(Duration = 60)]
         [HttpGet("users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -86,7 +86,6 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
-        [ResponseCache(Duration = 60)]
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetUserDetails(Guid userId)
         {
@@ -264,7 +263,6 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(IEnumerable<ActivityLogResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [ResponseCache(Duration = 60)]
         [HttpGet("activities")]
         public async Task<IActionResult> GetAllActivities()
         {
@@ -288,7 +286,6 @@ namespace CryptoProject.Controllers
         [ProducesResponseType(typeof(IEnumerable<TransactionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [ResponseCache(Duration = 60)]
         [HttpGet("transactions")]
         public async Task<IActionResult> GetAllTransactions()
         {
