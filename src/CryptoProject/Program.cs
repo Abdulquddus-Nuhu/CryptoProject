@@ -12,8 +12,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Events;
 using System.Text;
@@ -241,6 +244,16 @@ try
     }));
 
     builder.Services.AddResponseCaching();
+
+    builder.Services.AddHttpClient();
+
+    builder.Services.AddOpenTelemetry().WithTracing(b =>
+    {
+        b
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.EnvironmentName))
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter(opt => { opt.Endpoint = new Uri("http://localhost:4317"); });
+    });
 
     var app = builder.Build();
 
