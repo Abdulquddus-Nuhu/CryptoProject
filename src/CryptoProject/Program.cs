@@ -245,15 +245,15 @@ try
 
     builder.Services.AddResponseCaching();
 
-    builder.Services.AddHttpClient();
+    //builder.Services.AddHttpClient();
 
-    builder.Services.AddOpenTelemetry().WithTracing(b =>
-    {
-        b
-        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.EnvironmentName))
-        .AddAspNetCoreInstrumentation()
-        .AddOtlpExporter(opt => { opt.Endpoint = new Uri("http://localhost:4317"); });
-    });
+    //builder.Services.AddOpenTelemetry().WithTracing(b =>
+    //{
+    //    b
+    //    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.EnvironmentName))
+    //    .AddAspNetCoreInstrumentation()
+    //    .AddOtlpExporter(opt => { opt.Endpoint = new Uri("http://localhost:4317"); });
+    //});
 
     var app = builder.Build();
 
