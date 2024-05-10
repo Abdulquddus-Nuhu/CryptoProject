@@ -14,6 +14,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System.Net.Mime;
 using System.Text.Json;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Identity;
 
 namespace CryptoProject.Controllers
 {
@@ -26,11 +27,13 @@ namespace CryptoProject.Controllers
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _dbContext;
+        private readonly UserManager<User> _userManager;
         private readonly ILogger<AdminController> _logger;
-        public AdminController(AppDbContext dbContext, ILogger<AdminController> logger)
+        public AdminController(AppDbContext dbContext, ILogger<AdminController> logger, UserManager<User> userManager)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _userManager = userManager;
         }
 
         [Produces(MediaTypeNames.Application.Json)]
@@ -816,6 +819,42 @@ namespace CryptoProject.Controllers
             _dbContext.SaveChanges();
 
             return Ok(new BaseResponse());
+        }
+
+
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(BaseResponse), StatusCodes.Status500InternalServerError)]
+        [HttpPut("update-password")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                return BadRequest(new BaseResponse() { Code = 400, Status = false, Message = "Invalid request data." });
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return NotFound(new BaseResponse() { Message = "User not found", Status = false, Code = 404 });
+            }
+
+            // Generate a password reset token
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // Reset the password
+            var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+            if (result.Succeeded)
+            {
+                user.Password = model.NewPassword;
+                _dbContext.Users.Update(user);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new BaseResponse() { Message = "Password updated successfully.", Code = 200 });
+            }
+
+            return BadRequest(new BaseResponse() {Message = string.Join(',', result.Errors.Select(a => a.Description)) , Code = 400, Status = false});
         }
     }
 }
