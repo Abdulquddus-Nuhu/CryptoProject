@@ -269,6 +269,7 @@ try
 
     //security
     app.UseMiddleware<UserAgentValidationMiddleware>();
+    app.UseMiddleware<SecurityHeadersMiddleware>();
     //app.UseMiddleware<NotFoundRequestTrackingMiddleware>();
 
 
